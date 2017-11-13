@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// Server defines the server part of the cluster service
 type Server struct {
 	addr     string
 	close    chan bool
@@ -12,6 +13,7 @@ type Server struct {
 	timeout  int
 }
 
+// Listen creates the listener for the cluster server
 func (s *Server) Listen() (ln net.Listener, err error) {
 	s.listener, err = net.Listen("tcp", s.addr)
 	if err != nil {
@@ -20,13 +22,20 @@ func (s *Server) Listen() (ln net.Listener, err error) {
 	return s.listener, nil
 }
 
-func (s *Server) Serve(newSocket chan net.Conn) {
+// Serve accepts connections and forwards these to the cluster server
+func (s *Server) Serve(newSocket chan net.Conn, quit chan bool) {
 	defer s.listener.Close()
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			fmt.Println(err)
-			return
+			select {
+			case <-quit:
+				fmt.Printf("Quit initiated on Serve\n")
+				return
+			default:
+			}
+
+			continue
 		}
 		newSocket <- conn
 	}
