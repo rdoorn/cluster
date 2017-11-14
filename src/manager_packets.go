@@ -11,24 +11,22 @@ func (m *Manager) handlePackets() {
 	for {
 		select {
 		case message := <-m.ToCluster:
-			//fmt.Printf("received message to send to cluster:%+v\n", message)
 			err := m.writeCluster(message)
 			if err != nil {
-				fmt.Printf("Failed to write message to remote node. message: %+v error: %s\n", message, err)
+				m.log("Failed to write message to remote node. error: %s", err)
 			}
 		case packet := <-m.packetManager:
 			switch packet.DataType {
 			case "signals.Auth":
 			case "signals.NodeExitPacket":
-				fmt.Printf("%s Got exit notice from node %s\n", m.name, packet.Name)
+				m.log("Got exit notice from node %s", packet.Name)
 				m.connectedNodes.close(packet.Name)
 			case "signals.PingPacket":
-				fmt.Printf("%s Got ping from node %s\n", m.name, packet.Name)
+				m.log("Got ping from node %s", packet.Name)
 			default:
-				fmt.Printf("%s Recieved non-cluster packet: %+v\n", m.name, packet)
+				m.log("Recieved non-cluster packet: %+v\n", packet)
 				m.FromCluster <- packet
 			}
-			//fmt.Printf("packet: %+v\n", packet)
 		}
 	}
 }
@@ -38,18 +36,17 @@ func (m *Manager) newPacket(dataMessage interface{}) ([]byte, error) {
 	packet := &Packet{
 		Name:     m.name,
 		DataType: fmt.Sprintf("%s", val.Type()),
-		//DataMessage: dataMessage,
-		Time: time.Now(),
+		Time:     time.Now(),
 	}
 	data, err := json.Marshal(dataMessage)
 	if err != nil {
-		fmt.Printf("Unable to jsonfy data: %+v", data)
+		m.log("Unable to jsonfy data: %s", err)
 	}
 	packet.DataMessage = string(data)
 
 	packetData, err := json.Marshal(packet)
 	if err != nil {
-		fmt.Println("Unable to create json packet")
+		m.log("Unable to create json packet: %s", err)
 	}
 
 	packetData = append(packetData, 10) // 10 = newline

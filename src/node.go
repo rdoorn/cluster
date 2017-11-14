@@ -9,12 +9,13 @@ import (
 
 // Node defines a node of the cluster
 type Node struct {
-	name   string
-	addr   string
-	conn   net.Conn
-	reader *bufio.Reader
-	writer *bufio.Writer
-	quit   chan bool
+	name     string
+	addr     string
+	conn     net.Conn
+	reader   *bufio.Reader
+	writer   *bufio.Writer
+	quit     chan bool
+	joinTime time.Time
 }
 
 func newNode(name string, conn net.Conn) *Node {
@@ -28,15 +29,14 @@ func newNode(name string, conn net.Conn) *Node {
 	return newNode
 }
 
-func (n *Node) ioReader(packetManager chan Packet, quit chan bool) {
+func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration, quit chan bool) error {
 	for {
 		// Close connection when this function ends
 		defer func() {
-			fmt.Printf("Closing connection of %s\n", n.name)
 			n.conn.Close()
 		}()
 
-		timeoutDuration := 11 * time.Second
+		//timeoutDuration := 11 * time.Second
 
 		for {
 			// Set a deadline for reading. Read operation will fail if no data
@@ -49,22 +49,30 @@ func (n *Node) ioReader(packetManager chan Packet, quit chan bool) {
 
 				select {
 				case <-quit:
-					fmt.Printf("ioreader got quit signal for %s\n", n.name)
-					return
+					return fmt.Errorf("ioreader got quit signal for %s", n.name)
 				default:
 				}
 
-				fmt.Printf("Error reading from %s (%s)\n", n.name, err)
-				return
+				return fmt.Errorf("error reading from %s (%s)", n.name, err)
 			}
 			packet, err := UnpackPacket(bytes)
 			if err != nil {
 				fmt.Println(err)
-				return // fail if we do not understand the packet
+				return fmt.Errorf("unable to unpack packet: %s", err) // fail if we do not understand the packet
 			}
-			packet.source = fmt.Sprintf("%s", n.conn)
 			packetManager <- *packet
 		}
 
 	}
+}
+
+func (n *Node) close() {
+	select {
+	case <-n.quit:
+		// fmt.Printf("%s close is already exiting %s\n", time.Now(), n.name)
+		return
+	default:
+	}
+	close(n.quit)
+	n.conn.Close()
 }

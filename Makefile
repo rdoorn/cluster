@@ -1,5 +1,8 @@
 .PHONY: all test bench
 
+test-v:
+	go test ./... -v
+
 test:
 	go test ./...
 	go test ./... -short -race

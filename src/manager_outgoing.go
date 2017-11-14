@@ -1,34 +1,36 @@
 package signals
 
 import (
-	"fmt"
 	"net"
 	"time"
 )
 
 func (m *Manager) handleOutgoingConnections() {
-	// Poll to connect to remote servers every X time
-	connectionInterval := time.Duration(1500)
-	connectToLostClusters := time.NewTimer(connectionInterval * time.Millisecond)
-
 	for {
 		select {
-		case <-connectToLostClusters.C:
-			connectToLostClusters = time.NewTimer(connectionInterval * time.Millisecond)
-			// loop through all configured nodes, and see if we are not connected to one of them
-			for _, node := range m.getConfiguredNodes() {
-				if !m.connectedNodes.nodeExists(node.name) {
-					// Connect to the remote cluster node
-					fmt.Printf("%s Connecting to non-connected cluster node: %+v\n", m.name, node)
-					go m.dial(node.name, node.addr)
-				}
+		case <-m.quit:
+			// if manager exists, stop making outgoing connections
+			m.log("EXIT of manager for outgoing connections")
+			return
+		default:
+		}
+
+		// Attempt to connect to non-connected nodes
+		for _, node := range m.getConfiguredNodes() {
+			if !m.connectedNodes.nodeExists(node.name) {
+				// Connect to the remote cluster node
+				m.log("Connecting to non-connected cluster node: %s", node.name)
+				m.dial(node.name, node.addr)
 			}
 		}
+		//w ait before we try again
+		time.Sleep(m.getDuration("connectinterval"))
 	}
 }
 
 func (m *Manager) dial(name, addr string) {
-	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	m.log("Connecting to %s (%s)", name, addr)
+	conn, err := net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
 	if err == nil {
 		// on dialing out, we need to send an auth
 		authRequest, _ := m.newPacket(AuthRequestPacket{AuthKey: m.authKey})
@@ -45,12 +47,14 @@ func (m *Manager) dial(name, addr string) {
 			conn.Close()
 		}
 		if authResponse.Status != true {
-			fmt.Printf("dial auth failed: %s", authResponse.Error)
+
+			m.log("auth failed on dial: %s", authResponse.Error)
 		}
 
 		node := newNode(packet.Name, conn)
+		node.joinTime = authResponse.Time
 
-		m.handleAuthorizedConnection(node)
+		go m.handleAuthorizedConnection(node)
 	}
 }
 
@@ -69,29 +73,4 @@ func (m *Manager) writeClusterNode(node string, dataMessage interface{}) {
 	/*if n, err := m.getActiveNode(node); err == nil {
 		m.writeSocket(n.conn, dataMessage)
 	}*/
-}
-
-func (m *Manager) pinger(conn net.Conn, quit chan bool) {
-	//if m.name == "managerA" {
-	//		return
-	//	}
-	for {
-		select {
-		case <-quit:
-			fmt.Printf("Exiting pinger for %s\n", conn.RemoteAddr())
-			return
-		default:
-		}
-		p, _ := m.newPacket(&PingPacket{Time: time.Now()})
-		fmt.Printf("Sending Ping for %s\n", m.name)
-		err := m.connectedNodes.writeSocket(conn, p)
-		if err != nil {
-			fmt.Printf("Failed to send ping to %s\n", conn.RemoteAddr())
-			//close(quit)
-			conn.Close()
-			return
-		}
-		time.Sleep(5 * time.Second)
-
-	}
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -18,18 +19,17 @@ type connectionPool struct {
 //nodes: make([]*Node),
 //}
 
-func (c *connectionPool) nodeAdd(newNode *Node) error {
+func (c *connectionPool) nodeAdd(newNode *Node) (*Node, error) {
 	c.Lock()
 	defer c.Unlock()
 	// Check if node does not exist
 	for _, node := range c.nodes {
 		if node.name == newNode.name {
-			return fmt.Errorf("Node %s already exists in connection pool", newNode.name)
+			return node, fmt.Errorf("Node %s already exists in connection pool add(%s->%s) existing(%s->%s)", newNode.name, newNode.conn.LocalAddr(), newNode.conn.RemoteAddr(), node.conn.LocalAddr(), node.conn.RemoteAddr())
 		}
 	}
-	fmt.Printf("Adding node: %+v\n", newNode)
 	c.nodes = append(c.nodes, newNode)
-	return nil
+	return nil, nil
 }
 
 func (c *connectionPool) nodeRemove(newNode *Node) error {
@@ -38,6 +38,8 @@ func (c *connectionPool) nodeRemove(newNode *Node) error {
 	// Check if node does not exist
 	remove := -1
 	for id, node := range c.nodes {
+		//if node.conn.RemoteAddr() == newNode.conn.RemoteAddr() &&
+		//node.conn.LocalAddr() == newNode.conn.LocalAddr() {
 		if node.name == newNode.name {
 			remove = id
 		}
@@ -86,14 +88,18 @@ func (c *connectionPool) getAllSockets() (conns []net.Conn) {
 }
 
 func (c *connectionPool) writeAll(p []byte) error {
+	var errors []string
 	conns := c.getAllSockets()
 	for _, conn := range conns {
 		err := c.writeSocket(conn, p)
-		if err != nil {
-			return fmt.Errorf("writeAll failed: %s", err)
+		if err != nil { // collect errors, try to send to the others
+			errors = append(errors, err.Error())
 		}
-
 	}
+	if len(errors) > 0 {
+		return fmt.Errorf("writeAll failed: %s", strings.Join(errors, ","))
+	}
+
 	return nil
 }
 
@@ -107,7 +113,7 @@ func (c *connectionPool) write(name string, p []byte) error {
 }
 
 func (c *connectionPool) writeSocket(conn net.Conn, p []byte) error {
-	fmt.Printf("Writing to socket: %+v", string(p))
+	//fmt.Printf("Writing to socket: %+v", string(p))
 	_, err := conn.Write(p)
 	if err != nil {
 		return fmt.Errorf("writeSocket failed: %s", err)
@@ -130,7 +136,7 @@ func (c *connectionPool) closeAll() {
 	c.Lock()
 	defer c.Unlock()
 	for _, node := range c.nodes {
-		node.conn.Close()
+		node.close()
 	}
 }
 
@@ -139,7 +145,7 @@ func (c *connectionPool) close(name string) {
 	defer c.Unlock()
 	for _, node := range c.nodes {
 		if node.name == name {
-			node.conn.Close()
+			node.close()
 		}
 	}
 }

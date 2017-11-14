@@ -12,7 +12,6 @@ type Packet struct {
 	DataType    string    `json:"datatype"`
 	DataMessage string    `json:"datamessage"`
 	Time        time.Time `json:"time"`
-	source      string
 }
 
 // Some predefined packets //
@@ -24,8 +23,9 @@ type AuthRequestPacket struct {
 
 // AuthResponsePacket defines an authorization response
 type AuthResponsePacket struct {
-	Status bool   `json:"status"`
-	Error  string `json:"error"`
+	Status bool      `json:"status"`
+	Error  string    `json:"error"`
+	Time   time.Time `json:"time"`
 }
 
 // PingPacket defines a ping

@@ -1,7 +1,6 @@
 package signals
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -30,7 +29,7 @@ func (s *Server) Serve(newSocket chan net.Conn, quit chan bool) {
 		if err != nil {
 			select {
 			case <-quit:
-				fmt.Printf("Quit initiated on Serve\n")
+				//fmt.Printf("%s Quit initiated on Serve\n", time.Now())
 				return
 			default:
 			}
