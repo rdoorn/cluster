@@ -25,15 +25,6 @@ type Manager struct {
 	quit            chan bool        // signals exit of listener
 }
 
-// Settings contains the adjustable setting for the cluster
-type Settings struct {
-	PingInterval    time.Duration // how over to ping a node
-	JoinDelay       time.Duration // delay before announcing node (done to prevent duplicate join messages on simultainious connects) (must be shorter than ping timeout)
-	ReadTimeout     time.Duration // timeout when to discard a node as broken if not read anything before this
-	ConnectInterval time.Duration // how often we try to reconnect to lost cluster nodes
-	ConnectTimeout  time.Duration // how long to try to connect to a node
-}
-
 // NewManager creates a new cluster manager
 func NewManager(name, key string) *Manager {
 	m := &Manager{
@@ -49,13 +40,7 @@ func NewManager(name, key string) *Manager {
 		Log:           make(chan string, 500),
 		authKey:       key,
 		quit:          make(chan bool),
-		settings: Settings{
-			PingInterval:    5 * time.Second,
-			JoinDelay:       500 * time.Millisecond,
-			ReadTimeout:     11 * time.Second,
-			ConnectInterval: 5 * time.Second,
-			ConnectTimeout:  10 * time.Second,
-		},
+		settings:      defaultSetting(),
 	}
 	return m
 }

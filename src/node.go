@@ -36,14 +36,10 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 			n.conn.Close()
 		}()
 
-		//timeoutDuration := 11 * time.Second
-
 		for {
-			// Set a deadline for reading. Read operation will fail if no data
-			// is received after deadline.
+			// Set a deadline for reading. Read operation will fail if no data is received after deadline.
 			n.conn.SetReadDeadline(time.Now().Add(timeoutDuration))
 
-			// Read tokens delimited by newline
 			bytes, err := n.reader.ReadBytes('\n')
 			if err != nil {
 
@@ -69,7 +65,6 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 func (n *Node) close() {
 	select {
 	case <-n.quit:
-		// fmt.Printf("%s close is already exiting %s\n", time.Now(), n.name)
 		return
 	default:
 	}

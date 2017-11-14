@@ -57,20 +57,3 @@ func (m *Manager) dial(name, addr string) {
 		go m.handleAuthorizedConnection(node)
 	}
 }
-
-func (m *Manager) writeCluster(dataMessage interface{}) error {
-	//nodes := connected.getActiveNodes()
-	packet, err := m.newPacket(dataMessage)
-	if err != nil {
-		return err
-	}
-	err = m.connectedNodes.writeAll(packet)
-	return err
-
-}
-
-func (m *Manager) writeClusterNode(node string, dataMessage interface{}) {
-	/*if n, err := m.getActiveNode(node); err == nil {
-		m.writeSocket(n.conn, dataMessage)
-	}*/
-}

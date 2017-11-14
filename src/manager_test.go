@@ -1,8 +1,8 @@
 package signals
 
 import (
-	"fmt"
 	"log"
+	"sync"
 	"testing"
 	"time"
 )
@@ -11,7 +11,6 @@ type Message struct {
 	Message string `json:"message"`
 }
 
-/*
 func TestOneClusterNode(t *testing.T) {
 	t.Parallel()
 
@@ -27,7 +26,7 @@ func TestOneClusterNode(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		if timeout := channelReadPacketTimeout(managerONE.FromCluster, 3); !timeout {
+		if _, timeout := channelReadPacket(managerONE.FromCluster, 2); !timeout {
 			t.Errorf("Read from cluster manager.FromCluster should timeout (we don't send to self). but we received data instead")
 		}
 	}()
@@ -41,12 +40,11 @@ func TestOneClusterNode(t *testing.T) {
 
 	managerONE.Shutdown()
 
-	if _, timeout := channelReadString(managerONE.nodeLeave, 3); !timeout {
+	if _, timeout := channelReadString(managerONE.nodeLeave, 2); !timeout {
 		t.Errorf("Read from cluster manager.nodeLeave should timeout (we don't send to self). but we received data instead")
 	}
 
 }
-*/
 
 func TestTwoClusterNode(t *testing.T) {
 	t.Parallel()
@@ -105,9 +103,13 @@ func TestTwoClusterNode(t *testing.T) {
 	}
 
 	logs := channelReadStrings(managerTWO.Log, 1)
-	for _, log := range logs {
-		fmt.Println("== LOG: ", log)
+	if len(logs) == 0 {
+		t.Errorf("expected log output for managerTWO, but got nothing")
 	}
+	/*
+		for _, log := range logs {
+			fmt.Println("== LOG: ", log)
+		}*/
 
 	managerTWO.Shutdown()
 
@@ -123,6 +125,7 @@ func TestTwoClusterNode(t *testing.T) {
 
 }
 
+// channelWriteTimeout writes a message to a channel, or will timeout if failed
 func channelWriteTimeout(channel chan interface{}, message interface{}, timeout time.Duration) bool {
 	select {
 	case channel <- message:
@@ -132,31 +135,19 @@ func channelWriteTimeout(channel chan interface{}, message interface{}, timeout 
 	}
 }
 
-func channelReadPacketTimeout(channel chan Packet, timeout time.Duration) bool {
-	for {
-		select {
-		case _ = <-channel:
-			return false // read successfull
-		case <-time.After(timeout * time.Second):
-			return true // read was blocked
-		}
-	}
-}
-
+// channelReadPacket reads 1 packet from the channel or times out after timeout
 func channelReadPacket(channel chan Packet, timeout time.Duration) (Packet, bool) {
-	fmt.Printf("==== reading from channel packet with timeout %s (%v)\n", timeout*time.Second, time.Now())
 	for {
 		select {
 		case p := <-channel:
-			fmt.Printf("==== reading from channel packet returned %s\n", p)
 			return p, false // read successfull
 		case <-time.After(timeout * time.Second):
-			fmt.Printf("==== reading from channel packet timedout (%v)\n", time.Now())
 			return Packet{}, true // read was blocked
 		}
 	}
 }
 
+// channelReadString reads 1 string from the channel or times out after timeout
 func channelReadString(channel chan string, timeout time.Duration) (string, bool) {
 	for {
 		select {
@@ -168,6 +159,7 @@ func channelReadString(channel chan string, timeout time.Duration) (string, bool
 	}
 }
 
+// channelReadStrings reads a array of strings for the duration of timeout
 func channelReadStrings(channel chan string, timeout time.Duration) (results []string) {
 	for {
 		select {
