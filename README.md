@@ -14,32 +14,38 @@ import (
 	"log"
 )
 
-	type CustomMessage struct{ Text: string }
+type CustomMessage struct{ Text: string }
 
-	func main() {
-    manager := NewManager("node1", "secret")
-    manager.AddClusterNode(Node{name: "node2", addr: "127.0.0.1:9505"})
-    err := manager.ListenAndServe("127.0.0.1:9504")
-    if err != nil {
-      log.Fatal(err)
-    }
-    manager.ToCluster <- CustomMessage{ Text: "Hello World!" } // will send data to all nodes except self
-    for {
-      select {
-        case package := <- manager.FromCluster:
-          cm := &CustomMessage
-          err := package.Message(cm)
-          if err != nil {
-            log.Println("Unable to get message from package: %s", err)
-          }
-          log.Println("we received a custom message: %s", cm.Text)
-      }
+func main() {
+  manager := NewManager("node1", "secret")
+  manager.AddClusterNode(Node{name: "node2", addr: "127.0.0.1:9505"})
+  err := manager.ListenAndServe("127.0.0.1:9504")
+  if err != nil {
+    log.Fatal(err)
+  }
+  manager.ToCluster <- CustomMessage{ Text: "Hello World!" } // will send data to all nodes except self
+  for {
+    select {
+      case package := <- manager.FromCluster:
+        cm := &CustomMessage
+        err := package.Message(cm)
+        if err != nil {
+          log.Println("Unable to get message from package: %s", err)
+        }
+        log.Println("we received a custom message: %s", cm.Text)
     }
   }
+}
 ```
 
 # Available Interfaces
 You can interface with the cluster through channels. available channels are:
+
+First Header  | Second Header
+------------- | -------------
+Content Cell  | Content Cell
+Content Cell  | Content Cell
+
 
 name | type | type | required | description
 ------- | ---------------- | ---------- | ---------
