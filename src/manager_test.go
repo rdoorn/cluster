@@ -26,7 +26,7 @@ func TestOneClusterNode(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		if _, timeout := channelReadPacket(managerONE.FromCluster, 2); !timeout {
+		if _, timeout := channelReadPacket(managerONE.FromCluster, 1); !timeout {
 			t.Errorf("Read from cluster manager.FromCluster should timeout (we don't send to self). but we received data instead")
 		}
 	}()
@@ -40,7 +40,7 @@ func TestOneClusterNode(t *testing.T) {
 
 	managerONE.Shutdown()
 
-	if _, timeout := channelReadString(managerONE.nodeLeave, 2); !timeout {
+	if _, timeout := channelReadString(managerONE.nodeLeave, 1); !timeout {
 		t.Errorf("Read from cluster manager.nodeLeave should timeout (we don't send to self). but we received data instead")
 	}
 
@@ -125,8 +125,152 @@ func TestTwoClusterNode(t *testing.T) {
 
 }
 
+func TestTreeNodeCluster(t *testing.T) {
+	t.Parallel()
+	// Manager 4
+	managerFOUR := NewManager("managerFOUR", "secret")
+	err := managerFOUR.ListenAndServe("127.0.0.1:9504")
+	if err != nil {
+		log.Fatal(err)
+	}
+	managerFOUR.AddClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
+	managerFOUR.AddClusterNode(Node{name: "managerSIX", addr: "127.0.0.1:9506"})
+
+	// Manager 5
+	managerFIVE := NewManager("managerFIVE", "secret")
+	err = managerFIVE.ListenAndServe("127.0.0.1:9505")
+	if err != nil {
+		log.Fatal(err)
+	}
+	managerFIVE.AddClusterNode(Node{name: "managerFOUR", addr: "127.0.0.1:9504"})
+	managerFIVE.AddClusterNode(Node{name: "managerSIX", addr: "127.0.0.1:9506"})
+
+	// Manager 6
+	managerSIX := NewManager("managerSIX", "secret")
+	err = managerSIX.ListenAndServe("127.0.0.1:9506")
+	if err != nil {
+		log.Fatal(err)
+	}
+	managerSIX.AddClusterNode(Node{name: "managerFOUR", addr: "127.0.0.1:9504"})
+	managerSIX.AddClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
+
+	// joins on manager4
+	for a := 0; a <= 1; a++ {
+		node, timeout := channelReadString(managerFOUR.nodeJoin, 5)
+		if timeout {
+			t.Errorf("expected Join on managerFOUR, but got timeout (loop:%d)", a)
+		}
+		if node != "managerFIVE" && node != "managerSIX" {
+			t.Errorf("expected Join on managerFOUR to be from managerFIVE or managerSIX, but got:%s (loop:%d)", node, a)
+		}
+	}
+
+	// joins on manager5
+	for a := 0; a <= 1; a++ {
+		node, timeout := channelReadString(managerFIVE.nodeJoin, 5)
+		if timeout {
+			t.Errorf("expected Join on managerFIVE, but got timeout (loop:%d)", a)
+		}
+		if node != "managerFOUR" && node != "managerSIX" {
+			t.Errorf("expected Join on managerFIVE to be from managerFOUR or managerSIX, but got:%s (loop:%d)", node, a)
+		}
+	}
+
+	// joins on manager6
+	for a := 0; a <= 1; a++ {
+		node, timeout := channelReadString(managerSIX.nodeJoin, 5)
+		if timeout {
+			t.Errorf("expected Join on managerSIX, but got timeout (loop:%d)", a)
+		}
+		if node != "managerFIVE" && node != "managerFOUR" {
+			t.Errorf("expected Join on managerSIX to be from managerFIVE or managerFOUR, but got:%s (loop:%d)", node, a)
+		}
+	}
+
+	// send hello to cluster
+	if timeout := channelWriteTimeout(managerFOUR.ToCluster, Message{Message: "Hello World"}, 2); timeout {
+		t.Errorf("expected write to managerFOUR.ToCluster to work, but it timedout")
+	}
+
+	// read hello from cluster node 5
+	packet, timeout := channelReadPacket(managerFIVE.FromCluster, 5)
+	if timeout {
+		t.Errorf("expected data FromCluster on managerFIVE, but got timeout")
+	} else {
+		msg := &Message{}
+		err := packet.Message(msg)
+		if err != nil {
+			t.Errorf("unable to unpack the message received from managerFIVE.FromCluster error:%s", err)
+		} else if msg.Message != "Hello World" {
+			t.Errorf("expected managerFIVE.FromCluster to return 'Hello World' but got:%s", msg)
+		}
+	}
+
+	// read hello from cluster node 6
+	packet, timeout = channelReadPacket(managerSIX.FromCluster, 5)
+	if timeout {
+		t.Errorf("expected data FromCluster on managerSIX, but got timeout")
+	} else {
+		msg := &Message{}
+		err := packet.Message(msg)
+		if err != nil {
+			t.Errorf("unable to unpack the message received from managerSIX.FromCluster error:%s", err)
+		} else if msg.Message != "Hello World" {
+			t.Errorf("expected managerSIX.FromCluster to return 'Hello World' but got:%s", msg)
+		}
+	}
+
+	// write hello to node 4
+	if timeout = channelWriteTimeoutPM(managerSIX.ToNode, PM{Node: "managerFOUR", Message: Message{Message: "Hello managerFOUR"}}, 2); timeout {
+		t.Errorf("expected write to managerSIX.ToNode to work, but it timedout")
+	}
+
+	// read hello from cluster node 4
+	packet, timeout = channelReadPacket(managerFOUR.FromCluster, 5)
+	if timeout {
+		t.Errorf("expected data FromCluster on managerFOUR, but got timeout")
+	} else {
+		msg := &Message{}
+		err := packet.Message(msg)
+		if err != nil {
+			t.Errorf("unable to unpack the message received from managerFOUR.FromCluster error:%s", err)
+		} else if msg.Message != "Hello managerFOUR" {
+			t.Errorf("expected managerFOUR.FromCluster to return 'Hello managerFOUR' but got:%s", msg)
+		}
+	}
+
+	managerSIX.Shutdown()
+
+	node, timeout := channelReadString(managerFOUR.nodeLeave, 2)
+	if timeout {
+		t.Errorf("expected Leave on managerFOUR, but got timeout")
+	}
+	if node != "managerSIX" {
+		t.Errorf("expected Leave on managerFOUR to be from managerSIX, but got:%s", node)
+	}
+
+	node, timeout = channelReadString(managerFIVE.nodeLeave, 2)
+	if timeout {
+		t.Errorf("expected Leave on managerFIVE, but got timeout")
+	}
+	if node != "managerSIX" {
+		t.Errorf("expected Leave on managerFIVE to be from managerSIX, but got:%s", node)
+	}
+
+}
+
 // channelWriteTimeout writes a message to a channel, or will timeout if failed
 func channelWriteTimeout(channel chan interface{}, message interface{}, timeout time.Duration) bool {
+	select {
+	case channel <- message:
+		return false // write successfull
+	case <-time.After(timeout * time.Second):
+		return true // we were blocked
+	}
+}
+
+// channelWriteTimeoutPM writes a Private Message to a channel, or will timeout if failed
+func channelWriteTimeoutPM(channel chan PM, message PM, timeout time.Duration) bool {
 	select {
 	case channel <- message:
 		return false // write successfull

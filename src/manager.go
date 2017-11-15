@@ -3,15 +3,14 @@ package signals
 import (
 	"net"
 	"sync"
-	"time"
 )
 
 // Manager is the main cluster manager
 type Manager struct {
 	sync.RWMutex
-	name            string          // name of our cluster node
-	configuredNodes map[string]Node // details of the remote cluster nodes
-	settings        Settings
+	name            string           // name of our cluster node
+	configuredNodes map[string]Node  // details of the remote cluster nodes
+	settings        Settings         // adjustable settings
 	connectedNodes  connectionPool   // the list of connected nodes and their sockets
 	listener        net.Listener     // our listener
 	newSocket       chan net.Conn    // new clients connecting
@@ -20,9 +19,16 @@ type Manager struct {
 	packetManager   chan Packet      // packets sent to packet manager
 	FromCluster     chan Packet      // data received from cluster
 	ToCluster       chan interface{} // data send to cluster
+	ToNode          chan PM          // data send to specific node
 	Log             chan string      // logging messages go here
 	authKey         string           // authentication key
 	quit            chan bool        // signals exit of listener
+}
+
+// PM is used for sending private messages between cluster
+type PM struct {
+	Node    string      // node to send message to
+	Message interface{} // message to send to node
 }
 
 // NewManager creates a new cluster manager
@@ -30,17 +36,17 @@ func NewManager(name, key string) *Manager {
 	m := &Manager{
 		name:            name,
 		configuredNodes: make(map[string]Node),
-		//connectedNodes:  connectionPool{},
-		newSocket:     make(chan net.Conn),
-		nodeJoin:      make(chan string, 10),
-		nodeLeave:     make(chan string, 10),
-		packetManager: make(chan Packet),
-		FromCluster:   make(chan Packet),
-		ToCluster:     make(chan interface{}),
-		Log:           make(chan string, 500),
-		authKey:       key,
-		quit:          make(chan bool),
-		settings:      defaultSetting(),
+		newSocket:       make(chan net.Conn),
+		nodeJoin:        make(chan string, 10),
+		nodeLeave:       make(chan string, 10),
+		packetManager:   make(chan Packet),
+		FromCluster:     make(chan Packet),
+		ToCluster:       make(chan interface{}),
+		ToNode:          make(chan PM),
+		Log:             make(chan string, 500),
+		authKey:         key,
+		quit:            make(chan bool),
+		settings:        defaultSetting(),
 	}
 	return m
 }
@@ -66,7 +72,6 @@ func (m *Manager) Shutdown() {
 	packet, _ := m.newPacket(&NodeExitPacket{})
 	m.connectedNodes.writeAll(packet)
 	// close all connected nodes
-	time.Sleep(5 * time.Second)
 	m.connectedNodes.closeAll()
 	close(m.quit)
 	m.listener.Close()

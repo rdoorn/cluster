@@ -87,8 +87,11 @@ func (m *Manager) writeCluster(dataMessage interface{}) error {
 
 }
 
-func (m *Manager) writeClusterNode(node string, dataMessage interface{}) {
-	/*if n, err := m.getActiveNode(node); err == nil {
-		m.writeSocket(n.conn, dataMessage)
-	}*/
+func (m *Manager) writeClusterNode(node string, dataMessage interface{}) error {
+	packet, err := m.newPacket(dataMessage)
+	if err != nil {
+		return err
+	}
+	err = m.connectedNodes.write(node, packet)
+	return err
 }

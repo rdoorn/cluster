@@ -10,6 +10,11 @@ import (
 func (m *Manager) handlePackets() {
 	for {
 		select {
+		case pm := <-m.ToNode:
+			err := m.writeClusterNode(pm.Node, pm.Message)
+			if err != nil {
+				m.log("Failed to write message to remote node. error: %s", err)
+			}
 		case message := <-m.ToCluster:
 			err := m.writeCluster(message)
 			if err != nil {

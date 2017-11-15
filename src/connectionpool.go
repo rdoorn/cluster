@@ -14,11 +14,6 @@ type connectionPool struct {
 	nodes []*Node
 }
 
-// dnsmanager holds all dns records known
-//var connected = &connectionPool{
-//nodes: make([]*Node),
-//}
-
 func (c *connectionPool) nodeAdd(newNode *Node) (*Node, error) {
 	c.Lock()
 	defer c.Unlock()
@@ -38,8 +33,6 @@ func (c *connectionPool) nodeRemove(newNode *Node) error {
 	// Check if node does not exist
 	remove := -1
 	for id, node := range c.nodes {
-		//if node.conn.RemoteAddr() == newNode.conn.RemoteAddr() &&
-		//node.conn.LocalAddr() == newNode.conn.LocalAddr() {
 		if node.name == newNode.name {
 			remove = id
 		}
@@ -48,12 +41,6 @@ func (c *connectionPool) nodeRemove(newNode *Node) error {
 		c.nodes = append(c.nodes[:remove], c.nodes[remove+1:]...)
 	}
 	return nil
-}
-
-func (c *connectionPool) getConnectCount() int {
-	c.RLock()
-	defer c.RUnlock()
-	return len(c.nodes)
 }
 
 func (c *connectionPool) nodeExists(name string) bool {
@@ -67,15 +54,15 @@ func (c *connectionPool) nodeExists(name string) bool {
 	return false
 }
 
-func (c *connectionPool) getSocket(name string) (conn net.Conn) {
+func (c *connectionPool) getSocket(name string) (net.Conn, error) {
 	c.RLock()
 	defer c.RUnlock()
 	for _, node := range c.nodes {
 		if node.name == name {
-			return node.conn
+			return node.conn, nil
 		}
 	}
-	return
+	return nil, fmt.Errorf("node not found: %s", name)
 }
 
 func (c *connectionPool) getAllSockets() (conns []net.Conn) {
@@ -104,8 +91,11 @@ func (c *connectionPool) writeAll(p []byte) error {
 }
 
 func (c *connectionPool) write(name string, p []byte) error {
-	conn := c.getSocket(name)
-	err := c.writeSocket(conn, p)
+	conn, err := c.getSocket(name)
+	if err != nil {
+		return fmt.Errorf("write failed: %s", err)
+	}
+	err = c.writeSocket(conn, p)
 	if err != nil {
 		return fmt.Errorf("write failed: %s", err)
 	}
