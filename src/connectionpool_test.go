@@ -1,4 +1,4 @@
-package signals
+package cluster
 
 import "testing"
 

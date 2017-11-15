@@ -1,4 +1,4 @@
-package signals
+package cluster
 
 import (
 	"time"
@@ -38,22 +38,18 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	// start pinger in the background
 	go m.pinger(node)
 
-	m.log("%s beeing broadcasted to nodeJoin", m.name)
-	select {
-	case m.nodeJoin <- node.name:
-	default:
-	}
-	m.log("%s reading IO", m.name)
-	err = node.ioReader(m.packetManager, m.getDuration("readtimeout"), node.quit)
-	m.log("%s exiting due to %s", m.name, err)
-	select {
+	// send join
+	m.internalMessage <- InternalMessage{Type: "nodejoin", Node: node.name}
+	// wait for data till connection is closed
+	err = node.ioReader(m.incommingPackets, m.getDuration("readtimeout"), node.quit)
 
-	case m.nodeLeave <- node.name:
-	default:
-	}
-	m.log("%s beeing removed from connected list (%s)", m.name, node.conn.RemoteAddr())
+	// remove node from connectionPool
+	m.log("%s left, removing from connected list (%s)", m.name, node.conn.RemoteAddr())
 	m.connectedNodes.nodeRemove(node)
 	node.close()
+
+	// send leave
+	m.internalMessage <- InternalMessage{Type: "nodeleave", Node: node.name, Error: err.Error()}
 }
 
 func (m *Manager) pinger(node *Node) {

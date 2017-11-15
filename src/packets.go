@@ -1,4 +1,4 @@
-package signals
+package cluster
 
 import (
 	"encoding/json"
@@ -33,8 +33,8 @@ type PingPacket struct {
 	Time time.Time `json:"time"`
 }
 
-// NodeExitPacket defines a node exiting the cluster
-type NodeExitPacket struct{}
+// NodeShutdownPacket defines a node shutting down the cluster
+type NodeShutdownPacket struct{}
 
 // Message returns the message of a packet
 func (packet *Packet) Message(message interface{}) error {

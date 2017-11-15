@@ -1,4 +1,4 @@
-package signals
+package cluster
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 func (m *Manager) log(message string, args ...interface{}) {
 	select {
-	case m.Log <- fmt.Sprintf(message, args):
+	case m.Log <- fmt.Sprintf(message, args...):
 	default:
 	}
 }
