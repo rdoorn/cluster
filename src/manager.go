@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"net"
+	"net/http"
 	"sync"
 )
 
@@ -41,10 +42,15 @@ type PM struct {
 }
 
 // NewManager creates a new cluster manager
-func NewManager(name, key string) *Manager {
+func NewManager(name, authKey string) *Manager {
+	loginURL := "/login/" + name
+	http.Handle("/api/cluster/"+name+"/admin/", authenticate(apiClusterAdminHandler{}, authKey, loginURL))
+	http.Handle("/api/cluster/"+name+"/", apiClusterHandler{})
+	http.Handle(loginURL, apiLogin{authKey: authKey})
+
 	m := &Manager{
 		name:             name,
-		authKey:          key,
+		authKey:          authKey,
 		settings:         defaultSetting(),
 		configuredNodes:  make(map[string]Node),
 		newSocket:        make(chan net.Conn),

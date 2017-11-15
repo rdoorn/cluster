@@ -6,7 +6,7 @@ It will allow you to talk to multiple nodes via channels and exchange informatio
 
 # Usage
 Below is an example of 1 cluster service, with 2 nodes configured (node1 (self) + node2)
-```
+```golang
 package main
 
 import (
@@ -40,7 +40,9 @@ import (
 
 # Available Interfaces
 You can interface with the cluster through channels. available channels are:
+
 name | type | type | required | description
+------- | ---------------- | ---------- | ---------
 manager.ToCluster | <- | interface{} | no | used to write interface{} data to the cluster
 manager.ToNode | <- | PM{} | no | used to write private messages to a cluster node
 manager.FromCluster | -> | Package{} | yes | used to receive cluster packages on from other nodes
