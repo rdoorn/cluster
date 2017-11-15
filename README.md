@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/rdoorn/cluster.png)](https://travis-ci.org/rdoorn/cluster)
+
 # cluster
 Cluster is a cluster service library in Golang
 It will allow you to talk to multiple nodes via channels and exchange information based on custom struct's
@@ -38,10 +40,29 @@ import (
 
 # Available Interfaces
 You can interface with the cluster through channels. available channels are:
-| name | type | type | required | description |
-| manager.ToCluster | <- | interface{} | no | used to write interface{} data to the cluster |
-| manager.ToNode | <- | PM{} | no | used to write private messages to a cluster node |
-| manager.FromCluster | -> | Package{} | yes | used to receive cluster packages on from other nodes |
-| manager.QuorumState | -> | no | bool | used to read the current quorum state, will update on node join/leave |
-| manager.NodeJoin | -> | no | string | name of node joining the cluster |
-| manager.NodeLeave | -> | no | string | name of node leaving the cluster |
+name | type | type | required | description
+manager.ToCluster | <- | interface{} | no | used to write interface{} data to the cluster
+manager.ToNode | <- | PM{} | no | used to write private messages to a cluster node
+manager.FromCluster | -> | Package{} | yes | used to receive cluster packages on from other nodes
+manager.QuorumState | -> | no | bool | used to read the current quorum state, will update on node join/leave
+manager.NodeJoin | -> | no | string | name of node joining the cluster
+manager.NodeLeave | -> | no | string | name of node leaving the cluster
+
+## Contributing
+
+1. Clone this repository from GitHub:
+
+        $ git clone git@github.com:rdoorn/cluster.git
+
+2. Create a git branch
+
+        $ git checkout -b my_bug_fix
+
+3. Make your changes/patches/fixes, committing appropiately
+4. **Write tests**
+5. Run tests
+
+        $ make test
+
+# Authors
+        - Author: Ronald Doorn (<rdoorn@schubergphilis.com>)
