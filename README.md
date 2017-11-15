@@ -41,20 +41,14 @@ func main() {
 # Available Interfaces
 You can interface with the cluster through channels. available channels are:
 
-First Header  | Second Header
-------------- | -------------
-Content Cell  | ->
-Content Cell  | Content Cell
-
-
-name | type | type | required | description
-------- | ---------------- | ---------- | ---------
-manager.ToCluster | `<-` | interface{} | no | used to write interface{} data to the cluster
-manager.ToNode | `<-` | PM{} | no | used to write private messages to a cluster node
-manager.FromCluster | `->` | Package{} | yes | used to receive cluster packages on from other nodes
-manager.QuorumState | `->` | no | bool | used to read the current quorum state, will update on node join/leave
-manager.NodeJoin | `->` | no | string | name of node joining the cluster
-manager.NodeLeave | `->` | no | string | name of node leaving the cluster
+Name                | Direction | Type        | Required | Description
+------------------- | --------- | ----------- | -------- | -----------
+manager.ToCluster   | <-        | interface{} | no       | used to write interface{} data to the cluster
+manager.ToNode      | <-        | PM{}        | no       | used to write private messages to a cluster node
+manager.FromCluster | ->        | Package{}   | yes      | used to receive cluster packages on from other nodes
+manager.QuorumState | ->        | bool        | no       | used to read the current quorum state, will update on node join/leave
+manager.NodeJoin    | ->        | string      | no       | name of node joining the cluster
+manager.NodeLeave   | ->        | string      | no       | name of node leaving the cluster
 
 ## Contributing
 
