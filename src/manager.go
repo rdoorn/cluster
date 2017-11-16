@@ -20,7 +20,7 @@ type Manager struct {
 	authKey          string               // authentication key
 	settings         Settings             // adjustable settings
 	listener         net.Listener         // our listener
-	connectedNodes   connectionPool       // the list of connected nodes and their sockets
+	connectedNodes   *connectionPool      // the list of connected nodes and their sockets
 	configuredNodes  map[string]Node      // details of the remote cluster nodes
 	newSocket        chan net.Conn        // new clients connecting
 	internalMessage  chan InternalMessage // internally sent messages within the cluster
@@ -54,6 +54,7 @@ func NewManager(name, authKey string) *Manager {
 		authKey:          authKey,
 		settings:         defaultSetting(),
 		configuredNodes:  make(map[string]Node),
+		connectedNodes:   newConnectionPool(),
 		newSocket:        make(chan net.Conn),
 		internalMessage:  make(chan InternalMessage),
 		incommingPackets: make(chan Packet),

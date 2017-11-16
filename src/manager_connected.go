@@ -41,7 +41,11 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	// send join
 	m.internalMessage <- InternalMessage{Type: "nodejoin", Node: node.name}
 	// wait for data till connection is closed
+	m.connectedNodes.setStatus(node.name, StatusOnline)
+	m.connectedNodes.setStatusError(node.name, "")
 	err = node.ioReader(m.incommingPackets, m.getDuration("readtimeout"), node.quit)
+	m.connectedNodes.setStatus(node.name, StatusLeaving)
+	m.connectedNodes.setStatusError(node.name, err.Error())
 
 	// remove node from connectionPool
 	m.log("%s left, removing from connected list (%s)", m.name, node.conn.RemoteAddr())

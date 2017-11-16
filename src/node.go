@@ -9,16 +9,31 @@ import (
 
 // Node defines a node of the cluster
 type Node struct {
-	name     string
-	addr     string
-	conn     net.Conn
-	reader   *bufio.Reader
-	writer   *bufio.Writer
-	quit     chan bool
-	joinTime time.Time
-	lag      time.Duration
-	packets  int64
+	name      string
+	addr      string
+	conn      net.Conn
+	reader    *bufio.Reader
+	writer    *bufio.Writer
+	quit      chan bool
+	joinTime  time.Time
+	lag       time.Duration
+	packets   int64
+	statusStr string
+	errorStr  string
 }
+
+const (
+	// StatusNew is a new node
+	StatusNew = "New"
+	// StatusAuthenticating is a node doing authentication
+	StatusAuthenticating = "Authenticating"
+	// StatusShutdown is a node stopping
+	StatusShutdown = "Stopping"
+	// StatusOnline is a node online
+	StatusOnline = "Online"
+	// StatusLeaving is a node leaving
+	StatusLeaving = "Leaving"
+)
 
 func newNode(name string, conn net.Conn) *Node {
 	newNode := &Node{

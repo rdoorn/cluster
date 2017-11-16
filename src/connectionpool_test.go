@@ -2,7 +2,7 @@ package cluster
 
 import "testing"
 
-var c = connectionPool{}
+var c = newConnectionPool()
 
 func TestConnectionPool(t *testing.T) {
 	node1 := &Node{name: "node1"}

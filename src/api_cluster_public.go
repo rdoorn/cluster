@@ -37,8 +37,7 @@ func (h apiClusterPublicHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			Addr: configured.addr,
 		}
 
-		active := findActiveNode(h.manager.connectedNodes.nodes, configured.name)
-		if active != nil {
+		if active, ok := h.manager.connectedNodes.nodes[configured.name]; ok {
 			n.JoinTime = active.joinTime
 			n.Lag = active.lag
 			n.Packets = active.packets

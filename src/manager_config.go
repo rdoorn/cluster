@@ -29,6 +29,7 @@ func defaultSetting() Settings {
 func (m *Manager) AddClusterNode(n Node) {
 	m.Lock()
 	defer m.Unlock()
+	n.statusStr = StatusNew
 	m.configuredNodes[n.name] = n
 }
 

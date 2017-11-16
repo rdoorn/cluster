@@ -11,34 +11,32 @@ import (
 
 type connectionPool struct {
 	sync.RWMutex
-	nodes []*Node
+	nodes map[string]*Node
+}
+
+func newConnectionPool() *connectionPool {
+	c := &connectionPool{
+		nodes: make(map[string]*Node),
+	}
+	return c
 }
 
 func (c *connectionPool) nodeAdd(newNode *Node) (*Node, error) {
 	c.Lock()
 	defer c.Unlock()
 	// Check if node does not exist
-	for _, node := range c.nodes {
-		if node.name == newNode.name {
-			return node, fmt.Errorf("Node %s already exists in connection pool add(%s->%s) existing(%s->%s)", newNode.name, newNode.conn.LocalAddr(), newNode.conn.RemoteAddr(), node.conn.LocalAddr(), node.conn.RemoteAddr())
-		}
+	if node, ok := c.nodes[newNode.name]; ok {
+		return node, fmt.Errorf("Node %s already exists in connection pool add(%s->%s) existing(%s->%s)", newNode.name, newNode.conn.LocalAddr(), newNode.conn.RemoteAddr(), node.conn.LocalAddr(), node.conn.RemoteAddr())
 	}
-	c.nodes = append(c.nodes, newNode)
+	c.nodes[newNode.name] = newNode
 	return nil, nil
 }
 
 func (c *connectionPool) nodeRemove(newNode *Node) error {
 	c.Lock()
 	defer c.Unlock()
-	// Check if node does not exist
-	remove := -1
-	for id, node := range c.nodes {
-		if node.name == newNode.name {
-			remove = id
-		}
-	}
-	if remove >= 0 {
-		c.nodes = append(c.nodes[:remove], c.nodes[remove+1:]...)
+	if _, ok := c.nodes[newNode.name]; ok {
+		delete(c.nodes, newNode.name)
 	}
 	return nil
 }
@@ -46,10 +44,8 @@ func (c *connectionPool) nodeRemove(newNode *Node) error {
 func (c *connectionPool) nodeExists(name string) bool {
 	c.RLock()
 	defer c.RUnlock()
-	for _, node := range c.nodes {
-		if node.name == name {
-			return true
-		}
+	if _, ok := c.nodes[name]; ok {
+		return true
 	}
 	return false
 }
@@ -57,10 +53,8 @@ func (c *connectionPool) nodeExists(name string) bool {
 func (c *connectionPool) getSocket(name string) (net.Conn, error) {
 	c.RLock()
 	defer c.RUnlock()
-	for _, node := range c.nodes {
-		if node.name == name {
-			return node.conn, nil
-		}
+	if node, ok := c.nodes[name]; ok {
+		return node.conn, nil
 	}
 	return nil, fmt.Errorf("node not found: %s", name)
 }
@@ -133,20 +127,39 @@ func (c *connectionPool) closeAll() {
 func (c *connectionPool) close(name string) {
 	c.Lock()
 	defer c.Unlock()
-	for _, node := range c.nodes {
-		if node.name == name {
-			node.close()
-		}
+	if node, ok := c.nodes[name]; ok {
+		node.close()
 	}
 }
 
 func (c *connectionPool) setLag(name string, lag time.Duration) {
 	c.Lock()
 	defer c.Unlock()
-	for _, node := range c.nodes {
-		if node.name == name {
-			node.lag = lag
-		}
+	if node, ok := c.nodes[name]; ok {
+		node.lag = lag
 	}
+}
 
+func (c *connectionPool) incPackets(name string) {
+	c.Lock()
+	defer c.Unlock()
+	if node, ok := c.nodes[name]; ok {
+		node.packets++
+	}
+}
+
+func (c *connectionPool) setStatus(name, status string) {
+	c.Lock()
+	defer c.Unlock()
+	if node, ok := c.nodes[name]; ok {
+		node.statusStr = status
+	}
+}
+
+func (c *connectionPool) setStatusError(name, err string) {
+	c.Lock()
+	defer c.Unlock()
+	if node, ok := c.nodes[name]; ok {
+		node.errorStr = err
+	}
 }

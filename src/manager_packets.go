@@ -46,6 +46,7 @@ func (m *Manager) handlePackets() {
 				}
 			}
 		case packet := <-m.incommingPackets: // incomming packets from other cluster nodes
+			m.connectedNodes.incPackets(packet.Name)
 			switch packet.DataType {
 			case "cluster.Auth": // internal use
 			case "cluster.NodeShutdownPacket": // internal use
