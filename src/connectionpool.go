@@ -139,3 +139,14 @@ func (c *connectionPool) close(name string) {
 		}
 	}
 }
+
+func (c *connectionPool) setLag(name string, lag time.Duration) {
+	c.Lock()
+	defer c.Unlock()
+	for _, node := range c.nodes {
+		if node.name == name {
+			node.lag = lag
+		}
+	}
+
+}

@@ -35,6 +35,12 @@ type Manager struct {
 	QuorumState      chan bool            // returns the current quorum state
 }
 
+var managers = struct {
+	sync.RWMutex
+	manager       []string
+	clusterAPISet bool
+}{}
+
 // PM is used for sending private messages between cluster
 type PM struct {
 	Node    string      // node to send message to
@@ -43,11 +49,6 @@ type PM struct {
 
 // NewManager creates a new cluster manager
 func NewManager(name, authKey string) *Manager {
-	loginURL := "/login/" + name
-	http.Handle("/api/cluster/"+name+"/admin/", authenticate(apiClusterAdminHandler{}, authKey, loginURL))
-	http.Handle("/api/cluster/"+name+"/", apiClusterHandler{})
-	http.Handle(loginURL, apiLogin{authKey: authKey})
-
 	m := &Manager{
 		name:             name,
 		authKey:          authKey,
@@ -65,7 +66,39 @@ func NewManager(name, authKey string) *Manager {
 		NodeLeave:        make(chan string, 10),
 		QuorumState:      make(chan bool, 10),
 	}
+	addManager(m.name)
+	addClusterAPI(m)
 	return m
+}
+
+func addManager(name string) {
+	managers.Lock()
+	defer managers.Unlock()
+	managers.manager = append(managers.manager, name)
+}
+
+func removeManager(name string) {
+	managers.Lock()
+	defer managers.Unlock()
+	var new []string
+	for _, mgr := range managers.manager {
+		if mgr != name {
+			new = append(new, mgr)
+		}
+	}
+	managers.manager = new
+}
+
+func addClusterAPI(m *Manager) {
+	managers.Lock()
+	defer managers.Unlock()
+
+	http.Handle("/api/cluster/"+m.name+"/admin", authenticate(apiClusterAdminHandler{manager: m}, m.authKey))
+	http.Handle("/api/cluster/"+m.name, apiClusterPublicHandler{manager: m})
+	if managers.clusterAPISet == false {
+		http.Handle("/api/cluster", apiClusterHandler{})
+		managers.clusterAPISet = true
+	}
 }
 
 // ListenAndServe starts the listener and serves connections to clients
@@ -97,6 +130,7 @@ func (m *Manager) Shutdown() {
 	m.connectedNodes.closeAll()
 	close(m.quit)
 	m.listener.Close()
+	removeManager(m.name)
 }
 
 // quorum returns quorum state based on configured vs connected nodes

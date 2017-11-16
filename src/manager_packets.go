@@ -53,6 +53,7 @@ func (m *Manager) handlePackets() {
 				m.connectedNodes.close(packet.Name)
 			case "cluster.PingPacket": // internal use
 				m.log("Got ping from node %s (%v)", packet.Name, time.Now().Sub(packet.Time))
+				m.connectedNodes.setLag(packet.Name, time.Now().Sub(packet.Time))
 			default:
 				m.log("Recieved non-cluster packet: %s", packet.DataType)
 				m.FromCluster <- packet // outgoing to client application

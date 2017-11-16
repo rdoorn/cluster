@@ -16,6 +16,8 @@ type Node struct {
 	writer   *bufio.Writer
 	quit     chan bool
 	joinTime time.Time
+	lag      time.Duration
+	packets  int64
 }
 
 func newNode(name string, conn net.Conn) *Node {
