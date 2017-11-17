@@ -39,7 +39,7 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	go m.pinger(node)
 
 	// send join
-	m.internalMessage <- InternalMessage{Type: "nodejoin", Node: node.name}
+	m.internalMessage <- internalMessage{Type: "nodejoin", Node: node.name}
 	// wait for data till connection is closed
 	m.connectedNodes.setStatus(node.name, StatusOnline)
 	m.connectedNodes.setStatusError(node.name, "")
@@ -53,7 +53,7 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	node.close()
 
 	// send leave
-	m.internalMessage <- InternalMessage{Type: "nodeleave", Node: node.name, Error: err.Error()}
+	m.internalMessage <- internalMessage{Type: "nodeleave", Node: node.name, Error: err.Error()}
 }
 
 func (m *Manager) pinger(node *Node) {

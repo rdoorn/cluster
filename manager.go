@@ -7,7 +7,7 @@ import (
 )
 
 // InternalMessage is used for internal communication within the cluster
-type InternalMessage struct {
+type internalMessage struct {
 	Type  string `json:"type"`
 	Node  string `json:"node"`
 	Error string `json:"error"`
@@ -29,7 +29,7 @@ type Manager struct {
 	connectedNodes   *connectionPool      // the list of connected nodes and their sockets
 	configuredNodes  map[string]Node      // details of the remote cluster nodes
 	newSocket        chan net.Conn        // new clients connecting
-	internalMessage  chan InternalMessage // internally sent messages within the cluster
+	internalMessage  chan internalMessage // internally sent messages within the cluster
 	apiRequest       chan APIRequest      // API sent messages to the cluster from the API
 	incommingPackets chan Packet          // packets sent to packet manager
 	quit             chan bool            // signals exit of listener
@@ -58,7 +58,7 @@ func NewManager(name, authKey string) *Manager {
 		configuredNodes:  make(map[string]Node),
 		connectedNodes:   newConnectionPool(),
 		newSocket:        make(chan net.Conn),
-		internalMessage:  make(chan InternalMessage),
+		internalMessage:  make(chan internalMessage),
 		apiRequest:       make(chan APIRequest),
 		incommingPackets: make(chan Packet),
 		quit:             make(chan bool),
@@ -169,7 +169,7 @@ func (m *Manager) AddClusterNode(n Node) {
 	n.statusStr = StatusNew
 	m.configuredNodes[n.name] = n
 	select {
-	case m.internalMessage <- InternalMessage{Type: "nodeadd", Node: n.name}:
+	case m.internalMessage <- internalMessage{Type: "nodeadd", Node: n.name}:
 	default:
 	}
 }
@@ -183,7 +183,7 @@ func (m *Manager) RemoveClusterNode(n Node) {
 		delete(m.configuredNodes, n.name)
 	}
 	select {
-	case m.internalMessage <- InternalMessage{Type: "noderemove", Node: n.name}:
+	case m.internalMessage <- internalMessage{Type: "noderemove", Node: n.name}:
 	default:
 	}
 	m.connectedNodes.close(n.name)

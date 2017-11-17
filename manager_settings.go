@@ -25,7 +25,8 @@ func defaultSetting() Settings {
 	return s
 }
 
-func (m *Manager) updateSettings(settings Settings) {
+// UpdateSettings allows you to update a running cluster node with new settings
+func (m *Manager) UpdateSettings(settings Settings) {
 	m.Lock()
 	defer m.Unlock()
 	m.settings = settings

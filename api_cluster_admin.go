@@ -27,6 +27,6 @@ func (h apiClusterAdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 	node, action := path[2], path[3]
-	h.manager.internalMessage <- InternalMessage{Type: "api" + action, Node: node}
+	h.manager.internalMessage <- internalMessage{Type: "api" + action, Node: node}
 	apiWriteData(w, 200, apiMessage{Success: true, Data: action + " OK"})
 }
