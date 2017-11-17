@@ -12,23 +12,23 @@ are not used specificly by the cluster are forwarded to the client application
 using this cluster library.
 
 
-manager.ToCluster <- interface{} // send data to the cluster
-package := <-manager.FromCluster // recieve Package{} from the cluster containing the sent data (required)
+ manager.ToCluster <- interface{} // send data to the cluster
+ package := <-manager.FromCluster // recieve Package{} from the cluster containing the sent data (required)
 
 This interface allows you to send data to the cluster, which will be
 broadcasted across the connected nodes.
 
-state := <- manager.QuorumState // bool returning current quorum state, will update on node join/leave
-node := <- manager.NodeJoin  // string of node joining the cluster
-node := <- manager.NodeLeave // string of node leaving the cluster
+ state := <- manager.QuorumState // bool returning current quorum state, will update on node join/leave
+ node := <- manager.NodeJoin  // string of node joining the cluster
+ node := <- manager.NodeLeave // string of node leaving the cluster
 
 These channels are available to read additional cluster status updates
 
-request := <-manager.FromClusterApi // recieve APIRequest{} send via the API interface by a client
+ request := <-manager.FromClusterApi // recieve APIRequest{} send via the API interface by a client
 
 With APIEnabled you can recieve API requests though an authenticated web interface
 
-log := <-manager.Log // recieve Logging from the debug package
+ log := <-manager.Log // recieve Logging from the debug package
 
 Read the Log channel to receive cluster wide logging
 */
