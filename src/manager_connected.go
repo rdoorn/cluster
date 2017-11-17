@@ -48,7 +48,7 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	m.connectedNodes.setStatusError(node.name, err.Error())
 
 	// remove node from connectionPool
-	m.log("%s left, removing from connected list (%s)", m.name, node.conn.RemoteAddr())
+	m.log("%s left, removing from connected list (%s)", node.name, node.conn.RemoteAddr())
 	m.connectedNodes.nodeRemove(node)
 	node.close()
 

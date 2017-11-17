@@ -20,36 +20,46 @@ func (m *Manager) handlePackets() {
 			if err != nil {
 				m.log("Failed to write message to remote node. error: %s", err)
 			}
+		case message := <-m.apiRequest: // incomming messages from API
+			switch message.Action {
+			case "reconnect":
+			case "admin":
+			}
+			m.log("Cluster API request: %s (%s)", message.Action, message.Node)
+			select {
+			case m.FromClusterAPI <- message:
+			default:
+			}
 		case message := <-m.internalMessage: // incomming intenal messages (do not leave this library)
 			switch message.Type {
+			case "nodeadd":
+				m.updateQuorum()
+			case "noderemove":
+				m.updateQuorum()
 			case "nodejoin":
 				m.log("Cluster node joined: %s", message.Node)
 				select {
 				case m.NodeJoin <- message.Node: // send node join to client application
 				default:
 				}
-				m.log("Cluster quorum state: %t", m.quorum())
-				select {
-				case m.QuorumState <- m.quorum(): // quorum update to client application
-				default:
-				}
+				m.updateQuorum()
 			case "nodeleave":
 				m.log("Cluster node left: %s (%s)", message.Node, message.Error)
 				select {
-				case m.NodeLeave <- message.Node: // send node leave to client application
+				case m.NodeLeave <- message.Node: // send node join to client application
 				default:
 				}
-				m.log("Cluster quorum state: %t", m.quorum())
-				select {
-				case m.QuorumState <- m.quorum(): // quorum update to client application
-				default:
-				}
+				m.updateQuorum()
+			default:
+				m.log("Unknown internal message %+v", message)
 			}
 		case packet := <-m.incommingPackets: // incomming packets from other cluster nodes
 			m.connectedNodes.incPackets(packet.Name)
 			switch packet.DataType {
 			case "cluster.Auth": // internal use
+				m.connectedNodes.setStatus(packet.Name, StatusAuthenticating)
 			case "cluster.NodeShutdownPacket": // internal use
+				m.connectedNodes.setStatus(packet.Name, StatusShutdown)
 				m.log("Got exit notice from node %s (shutdown)", packet.Name)
 				m.connectedNodes.close(packet.Name)
 			case "cluster.PingPacket": // internal use

@@ -1,20 +1,23 @@
 package cluster
 
 import (
-	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
-const (
-	apiSalt           = "x0I3naOlm"
-	apiLoginURL       = "/login"
-	apiLoginValidTime = 1 * time.Hour
+var (
+	// APITokenSigningKey is key used to sign jtw tokens
+	APITokenSigningKey = []byte("a8Z(u5ETyCF4BZSlb9sMm3NuAjf'jBJT3UJ{6WpD=wZbivuFLxZvmSsE2j.ZbdDr")
+	// APITokenDuration is how long the jwt token is valid
+	APITokenDuration = 1 * time.Hour
+	// APIEnabled defines wether or not the API is enabled
+	APIEnabled = true
 )
 
 // Authentication middleware
@@ -29,31 +32,42 @@ type apiMessage struct {
 	Data    interface{} `json:"data"`
 }
 
+// APIRequest is used to pass requests done to the cluster API to the client application
+type APIRequest struct {
+	Action  string `json:"action"`
+	Manager string `json:"manager"`
+	Node    string `json:"node"`
+	Data    string `json:"data"`
+}
+
 func (h apiAuthentication) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("session")
 	if cookie != nil {
-		// get username
-		sc := strings.Split(cookie.Value, ".")
-		if len(sc) < 2 { // invalid contents
-			http.Redirect(w, r, "/login?return="+r.URL.Path, 302)
-			return
-		}
-		username := sc[len(sc)-2]
-		epochString := sc[len(sc)-1]
-		epoch, err := strconv.ParseInt(epochString, 10, 64)
+		token, err := jwt.Parse(cookie.Value, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+
+			return APITokenSigningKey, nil
+		})
+
 		if err != nil {
-			http.Redirect(w, r, apiLoginURL+"?return="+r.URL.Path, 302)
+			apiWriteData(w, 403, apiMessage{Success: false, Error: err.Error()})
 			return
 		}
-		// recreate key to see if its valid
-		authSha := apiMakeKey(username, h.authKey, epoch)
-		// is auth successfull?
-		if cookie.Value == authSha && time.Now().Unix() < epoch {
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			if time.Now().Unix() > int64(claims["expire"].(float64)) {
+				apiWriteData(w, 403, apiMessage{Success: false, Error: "Token expired"})
+				return
+			}
+
 			h.wrappedHandler.ServeHTTP(w, r)
+		} else {
+			apiWriteData(w, 403, apiMessage{Success: false, Error: err.Error()})
 			return
 		}
 	}
-	http.Redirect(w, r, apiLoginURL+"?return="+r.URL.Path, 302)
 }
 
 // Authenticate user
@@ -67,17 +81,23 @@ func apiStatus(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func apiMakeKey(username, key string, epoch int64) string {
-	if epoch == 0 {
-		epoch = time.Now().Add(apiLoginValidTime).Unix()
+func apiMakeKey(username, key string, epoch int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
+		"username": username,
+		"expire":   time.Now().Add(APITokenDuration).Unix(),
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(APITokenSigningKey)
+	if err != nil {
+		return "", err
 	}
-	hash := sha512.New()
-	hash.Write([]byte(fmt.Sprintf("%s%s%s%d", apiSalt, key, username, epoch)))
-	return fmt.Sprintf("%x.%s.%d", hash.Sum(nil), username, epoch)
+	return tokenString, nil
 }
 
 func apiWriteData(w http.ResponseWriter, statusCode int, message apiMessage) {
 	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	messageData, err := json.Marshal(message.Data)
 	message.Data = string(messageData)
 	data, err := json.Marshal(message)
@@ -86,7 +106,6 @@ func apiWriteData(w http.ResponseWriter, statusCode int, message apiMessage) {
 		w.Write([]byte("Failed to encode json on write"))
 	}
 	data = append(data, 10) // 10 = newline
-	fmt.Printf("Output: %+v", string(data))
 	w.Write(data)
 
 }

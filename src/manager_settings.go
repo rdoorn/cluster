@@ -25,23 +25,6 @@ func defaultSetting() Settings {
 	return s
 }
 
-// AddClusterNode adds a cluster node to the cluster to be connected to
-func (m *Manager) AddClusterNode(n Node) {
-	m.Lock()
-	defer m.Unlock()
-	n.statusStr = StatusNew
-	m.configuredNodes[n.name] = n
-}
-
-func (m *Manager) getConfiguredNodes() (nodes []Node) {
-	m.RLock()
-	defer m.RUnlock()
-	for _, node := range m.configuredNodes {
-		nodes = append(nodes, node)
-	}
-	return
-}
-
 func (m *Manager) updateSettings(settings Settings) {
 	m.Lock()
 	defer m.Unlock()

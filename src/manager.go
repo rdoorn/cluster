@@ -13,6 +13,12 @@ type InternalMessage struct {
 	Error string `json:"error"`
 }
 
+// NodeMessage is used for sending private messages between cluster nodes
+type NodeMessage struct {
+	Node    string      // node to send message to
+	Message interface{} // message to send to node
+}
+
 // Manager is the main cluster manager
 type Manager struct {
 	sync.RWMutex
@@ -24,11 +30,13 @@ type Manager struct {
 	configuredNodes  map[string]Node      // details of the remote cluster nodes
 	newSocket        chan net.Conn        // new clients connecting
 	internalMessage  chan InternalMessage // internally sent messages within the cluster
+	apiRequest       chan APIRequest      // API sent messages to the cluster from the API
 	incommingPackets chan Packet          // packets sent to packet manager
 	quit             chan bool            // signals exit of listener
 	FromCluster      chan Packet          // data received from cluster
+	FromClusterAPI   chan APIRequest      // data received from cluster via API interface
 	ToCluster        chan interface{}     // data send to cluster
-	ToNode           chan PM              // data send to specific node
+	ToNode           chan NodeMessage     // data send to specific node
 	Log              chan string          // logging messages go here
 	NodeJoin         chan string          // returns string of the node joining
 	NodeLeave        chan string          // returns string of the node leaving
@@ -41,12 +49,6 @@ var managers = struct {
 	clusterAPISet bool
 }{}
 
-// PM is used for sending private messages between cluster
-type PM struct {
-	Node    string      // node to send message to
-	Message interface{} // message to send to node
-}
-
 // NewManager creates a new cluster manager
 func NewManager(name, authKey string) *Manager {
 	m := &Manager{
@@ -57,18 +59,22 @@ func NewManager(name, authKey string) *Manager {
 		connectedNodes:   newConnectionPool(),
 		newSocket:        make(chan net.Conn),
 		internalMessage:  make(chan InternalMessage),
+		apiRequest:       make(chan APIRequest),
 		incommingPackets: make(chan Packet),
 		quit:             make(chan bool),
 		FromCluster:      make(chan Packet),
+		FromClusterAPI:   make(chan APIRequest, 10),
 		ToCluster:        make(chan interface{}),
-		ToNode:           make(chan PM),
+		ToNode:           make(chan NodeMessage),
 		Log:              make(chan string, 500),
 		NodeJoin:         make(chan string, 10),
 		NodeLeave:        make(chan string, 10),
 		QuorumState:      make(chan bool, 10),
 	}
 	addManager(m.name)
-	addClusterAPI(m)
+	if APIEnabled {
+		m.addClusterAPI()
+	}
 	return m
 }
 
@@ -90,11 +96,11 @@ func removeManager(name string) {
 	managers.manager = new
 }
 
-func addClusterAPI(m *Manager) {
+func (m *Manager) addClusterAPI() {
 	managers.Lock()
 	defer managers.Unlock()
 
-	http.Handle("/api/cluster/"+m.name+"/admin", authenticate(apiClusterAdminHandler{manager: m}, m.authKey))
+	http.Handle("/api/cluster/"+m.name+"/admin/", authenticate(apiClusterAdminHandler{manager: m}, m.authKey))
 	http.Handle("/api/cluster/"+m.name, apiClusterPublicHandler{manager: m})
 	if managers.clusterAPISet == false {
 		http.Handle("/api/cluster", apiClusterHandler{})
@@ -146,4 +152,48 @@ func (m *Manager) quorum() bool {
 	default:
 		return float64(len(m.configuredNodes)+1)/2 < float64(len(m.connectedNodes.nodes)+1) // +1 to add our selves
 	}
+}
+
+func (m *Manager) updateQuorum() {
+	m.log("Cluster quorum state: %t", m.quorum())
+	select {
+	case m.QuorumState <- m.quorum(): // quorum update to client application
+	default:
+	}
+}
+
+// AddClusterNode adds a cluster node to the cluster to be connected to
+func (m *Manager) AddClusterNode(n Node) {
+	m.Lock()
+	defer m.Unlock()
+	n.statusStr = StatusNew
+	m.configuredNodes[n.name] = n
+	select {
+	case m.internalMessage <- InternalMessage{Type: "nodeadd", Node: n.name}:
+	default:
+	}
+}
+
+// RemoveClusterNode remove a cluster node from the list of servers to connect to, and close its connections
+func (m *Manager) RemoveClusterNode(n Node) {
+	m.Lock()
+	defer m.Unlock()
+	m.log("%s is removing node %s", m.name, n.name)
+	if _, ok := m.configuredNodes[n.name]; ok {
+		delete(m.configuredNodes, n.name)
+	}
+	select {
+	case m.internalMessage <- InternalMessage{Type: "noderemove", Node: n.name}:
+	default:
+	}
+	m.connectedNodes.close(n.name)
+}
+
+func (m *Manager) getConfiguredNodes() (nodes []Node) {
+	m.RLock()
+	defer m.RUnlock()
+	for _, node := range m.configuredNodes {
+		nodes = append(nodes, node)
+	}
+	return
 }

@@ -9,17 +9,18 @@ type apiClusterPublicHandler struct {
 	manager *Manager
 }
 
-// APIClusterNode contains details of a node we might connect to
+// APIClusterNode contains details of a node we might connect to used for the API
 type APIClusterNode struct {
 	Name     string        `json:"name"`
 	Addr     string        `json:"addr"`
 	Status   string        `json:"status"`
+	Error    string        `json:"error"`
 	JoinTime time.Time     `json:"jointime"`
 	Lag      time.Duration `json:"lag"`
 	Packets  int64         `json:"packets"`
 }
 
-// APIClusterNodeList contains a list of configured/connected nodes
+// APIClusterNodeList contains a list of configured/connected nodes used for the API
 type APIClusterNodeList struct {
 	Nodes map[string]APIClusterNode `json:"nodes"`
 }
@@ -41,6 +42,8 @@ func (h apiClusterPublicHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			n.JoinTime = active.joinTime
 			n.Lag = active.lag
 			n.Packets = active.packets
+			n.Status = active.statusStr
+			n.Error = active.errorStr
 		}
 		message.Nodes[configured.name] = n
 	}

@@ -155,7 +155,9 @@ func TestTreeNodeCluster(t *testing.T) {
 	// Manager 5
 	managerFIVE := NewManager("managerFIVE", "secret")
 	managerFIVE.AddClusterNode(Node{name: "managerFOUR", addr: "127.0.0.1:9504"})
+	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
 	managerFIVE.AddClusterNode(Node{name: "managerSIX", addr: "127.0.0.1:9506"})
+	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
 	err = managerFIVE.ListenAndServe("127.0.0.1:9505")
 	if err != nil {
 		log.Fatal(err)
@@ -256,7 +258,7 @@ func TestTreeNodeCluster(t *testing.T) {
 	}
 
 	// write hello to node 4
-	if timeout = channelWriteTimeoutPM(managerSIX.ToNode, PM{Node: "managerFOUR", Message: Message{Message: "Hello managerFOUR"}}, 2); timeout {
+	if timeout = channelWriteTimeoutPM(managerSIX.ToNode, NodeMessage{Node: "managerFOUR", Message: Message{Message: "Hello managerFOUR"}}, 2); timeout {
 		t.Errorf("expected write to managerSIX.ToNode to work, but it timedout")
 	}
 
@@ -301,15 +303,28 @@ func TestTreeNodeCluster(t *testing.T) {
 		t.Errorf("expected Leave on managerFIVE to be from managerSIX, but got:%s", node)
 	}
 
-	managerFIVE.Shutdown()
-
-	// quorum should be ok, we only lost 1 our of 3 nodes
+	// add 1 more node, 4 node cluster, with 2 down
+	managerFOUR.AddClusterNode(Node{name: "managerSeven", addr: "127.0.0.1:9507"}) // non working node
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
 	if timeout {
 		t.Errorf("expected quorumstate on managerFOUR, but got timeout")
 	}
 	if quorum != false {
 		t.Errorf("expected quorumstate to be false on managerFOUR, but got:%t", quorum)
+	}
+
+	// RemoveClusterNode 7 and 4 - we should have a 2 cluster node now
+	managerFOUR.RemoveClusterNode(Node{name: "managerSeven", addr: "127.0.0.1:9507"})
+	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
+	managerFOUR.RemoveClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
+
+	// quorum should be ok, we only lost 1 our of 2 nodes
+	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
+	if timeout {
+		t.Errorf("expected quorumstate on managerFOUR, but got timeout")
+	}
+	if quorum != true {
+		t.Errorf("expected quorumstate to be true on managerFOUR, but got:%t", quorum)
 	}
 
 	logs := channelReadStrings(managerFOUR.Log, 1)
@@ -333,7 +348,7 @@ func channelWriteTimeout(channel chan interface{}, message interface{}, timeout 
 }
 
 // channelWriteTimeoutPM writes a Private Message to a channel, or will timeout if failed
-func channelWriteTimeoutPM(channel chan PM, message PM, timeout time.Duration) bool {
+func channelWriteTimeoutPM(channel chan NodeMessage, message NodeMessage, timeout time.Duration) bool {
 	select {
 	case channel <- message:
 		return false // write successfull
