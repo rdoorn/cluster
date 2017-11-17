@@ -131,7 +131,7 @@ func (m *Manager) ListenAndServe(addr string) (err error) {
 func (m *Manager) Shutdown() {
 	m.log("Stopping listener on %s", m.listener.Addr())
 	// write exit message to remote cluster
-	packet, _ := m.newPacket(&NodeShutdownPacket{})
+	packet, _ := m.newPacket(&packetNodeShutdown{})
 	m.connectedNodes.writeAll(packet)
 	// close all connected nodes
 	m.connectedNodes.closeAll()

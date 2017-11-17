@@ -64,7 +64,7 @@ func (m *Manager) pinger(node *Node) {
 			return
 		default:
 		}
-		p, _ := m.newPacket(&PingPacket{Time: time.Now()})
+		p, _ := m.newPacket(&packetPing{Time: time.Now()})
 		m.log("Sending ping to %s (%s)", node.name, node.conn.RemoteAddr())
 		err := m.connectedNodes.writeSocket(node.conn, p)
 		if err != nil {

@@ -15,12 +15,12 @@ func (m *Manager) handleIncommingConnections() {
 				continue
 			}
 			// Receive authentication request
-			authRequest := &AuthRequestPacket{}
+			authRequest := &packetAuthRequest{}
 			err = packet.Message(authRequest)
 			if err != nil {
 				// Unable to decode authRequest, attempt to send an error
 				m.log("%s sent an invalid authentication request: %s", err)
-				authRequest, _ := m.newPacket(AuthResponsePacket{Status: true, Error: err.Error()})
+				authRequest, _ := m.newPacket(packetAuthResponse{Status: true, Error: err.Error()})
 				m.connectedNodes.writeSocket(conn, authRequest)
 				conn.Close()
 				return
@@ -28,13 +28,13 @@ func (m *Manager) handleIncommingConnections() {
 			if authRequest.AuthKey != m.authKey {
 				// auth failed
 				m.log("%s sent an invalid authentication key")
-				authRequest, _ := m.newPacket(AuthResponsePacket{Status: true, Error: "invalid authentication key"})
+				authRequest, _ := m.newPacket(packetAuthResponse{Status: true, Error: "invalid authentication key"})
 				m.connectedNodes.writeSocket(conn, authRequest)
 				conn.Close()
 				return
 			}
 			authTime := time.Now()
-			authResponse, _ := m.newPacket(AuthResponsePacket{Status: true, Time: authTime})
+			authResponse, _ := m.newPacket(packetAuthResponse{Status: true, Time: authTime})
 			err = m.connectedNodes.writeSocket(conn, authResponse)
 			if err != nil {
 				m.log("%s failed while trying to send an authentication response")

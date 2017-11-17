@@ -17,24 +17,24 @@ type Packet struct {
 // Some predefined packets //
 
 // AuthRequestPacket defines an authorization request
-type AuthRequestPacket struct {
+type packetAuthRequest struct {
 	AuthKey string `json:"authkey"`
 }
 
 // AuthResponsePacket defines an authorization response
-type AuthResponsePacket struct {
+type packetAuthResponse struct {
 	Status bool      `json:"status"`
 	Error  string    `json:"error"`
 	Time   time.Time `json:"time"`
 }
 
 // PingPacket defines a ping
-type PingPacket struct {
+type packetPing struct {
 	Time time.Time `json:"time"`
 }
 
 // NodeShutdownPacket defines a node shutting down the cluster
-type NodeShutdownPacket struct{}
+type packetNodeShutdown struct{}
 
 // Message returns the message of a packet
 func (packet *Packet) Message(message interface{}) error {

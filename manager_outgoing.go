@@ -33,14 +33,14 @@ func (m *Manager) dial(name, addr string) {
 	conn, err := net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
 	if err == nil {
 		// on dialing out, we need to send an auth
-		authRequest, _ := m.newPacket(AuthRequestPacket{AuthKey: m.authKey})
+		authRequest, _ := m.newPacket(packetAuthRequest{AuthKey: m.authKey})
 		m.connectedNodes.writeSocket(conn, authRequest)
 		packet, err := m.connectedNodes.readSocket(conn)
 		if err != nil {
 			// close connection if someone is talking gibrish
 			conn.Close()
 		}
-		authResponse := &AuthResponsePacket{}
+		authResponse := &packetAuthResponse{}
 		err = packet.Message(authResponse)
 		if err != nil {
 			// auth response unknown

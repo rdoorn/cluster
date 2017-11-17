@@ -58,11 +58,11 @@ func (m *Manager) handlePackets() {
 			switch packet.DataType {
 			case "cluster.Auth": // internal use
 				m.connectedNodes.setStatus(packet.Name, StatusAuthenticating)
-			case "cluster.NodeShutdownPacket": // internal use
+			case "cluster.packetNodeShutdown": // internal use
 				m.connectedNodes.setStatus(packet.Name, StatusShutdown)
 				m.log("Got exit notice from node %s (shutdown)", packet.Name)
 				m.connectedNodes.close(packet.Name)
-			case "cluster.PingPacket": // internal use
+			case "cluster.packetPing": // internal use
 				m.log("Got ping from node %s (%v)", packet.Name, time.Now().Sub(packet.Time))
 				m.connectedNodes.setLag(packet.Name, time.Now().Sub(packet.Time))
 			default:
