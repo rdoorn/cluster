@@ -6,6 +6,7 @@ services:
 
 before_install:
  - sleep 5
+ - go get ./...
  - go get github.com/golang/lint/golint
 
 script:
