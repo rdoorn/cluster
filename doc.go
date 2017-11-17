@@ -1,8 +1,9 @@
 /*
-Package cluster implements a interface for clustered services. It allows you
-to interace to a cluster node, and messages sent across will be received by
-the connected cluster nodes. You can interface freely between these N nodes.
-Additionaly there is also an API interface for passing commands to the cluster.
+Package cluster implements a interface for clustered services.
+It allows you to interace to a cluster node, and messages sent across will be
+received by the connected cluster nodes. You can interface freely between
+these N nodes. Additionaly there is also an API interface for passing commands
+to the cluster.
 
 Interfacing
 

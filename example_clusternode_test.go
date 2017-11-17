@@ -38,10 +38,8 @@ func Example() {
 	// process all channels
 	for {
 		select {
-		case logentry := <-manager.Log:
-			log.Printf("manager.log: %s\n", logentry)
-		case logentry := <-manager2.Log:
-			log.Printf("manager2.log: %s\n", logentry)
+		// case logentry := <-manager2.Log:
+		// log.Printf("manager2.log: %s\n", logentry)
 		case p := <-manager.FromCluster:
 			var cm string
 			err := p.Message(&cm)
