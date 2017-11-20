@@ -11,16 +11,25 @@ func (m *Manager) handlePackets() {
 	for {
 		select {
 		case pm := <-m.ToNode: // incomming from client application
+			if LogTraffic {
+				m.log("traffic to cluster node: %+v", pm)
+			}
 			err := m.writeClusterNode(pm.Node, pm.Message)
 			if err != nil {
 				m.log("Failed to write message to remote node. error: %s", err)
 			}
 		case message := <-m.ToCluster: // incomming from client application
+			if LogTraffic {
+				m.log("traffic to cluster: %+v", message)
+			}
 			err := m.writeCluster(message)
 			if err != nil {
 				m.log("Failed to write message to remote node. error: %s", err)
 			}
 		case message := <-m.apiRequest: // incomming messages from API
+			if LogTraffic {
+				m.log("traffic from cluster api: %+v", message)
+			}
 			switch message.Action {
 			case "reconnect":
 			case "admin":
@@ -54,6 +63,9 @@ func (m *Manager) handlePackets() {
 				m.log("Unknown internal message %+v", message)
 			}
 		case packet := <-m.incommingPackets: // incomming packets from other cluster nodes
+			if LogTraffic {
+				m.log("traffic received incomming packet: %+v", packet)
+			}
 			m.connectedNodes.incPackets(packet.Name)
 			switch packet.DataType {
 			case "cluster.Auth": // internal use

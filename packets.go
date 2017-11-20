@@ -38,6 +38,9 @@ type packetNodeShutdown struct{}
 
 // Message returns the message of a packet
 func (packet *Packet) Message(message interface{}) error {
+	if packet == nil {
+		return fmt.Errorf("Unable to decrypt nil packet")
+	}
 	err := json.Unmarshal(json.RawMessage(packet.DataMessage), &message)
 	if err != nil {
 		return fmt.Errorf("Failed to decrypt dataMessage:%v", err)
