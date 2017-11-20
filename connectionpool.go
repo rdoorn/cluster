@@ -109,6 +109,9 @@ func (c *connectionPool) readSocket(conn net.Conn) (*Packet, error) {
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	reader := bufio.NewReader(conn)
 	bytes, err := reader.ReadBytes('\n')
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from socket: %s", err)
+	}
 	packet, err := UnpackPacket(bytes)
 	if err != nil {
 		return nil, fmt.Errorf("unpack failed: %s", err)
