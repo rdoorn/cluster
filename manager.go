@@ -163,30 +163,33 @@ func (m *Manager) updateQuorum() {
 }
 
 // AddClusterNode adds a cluster node to the cluster to be connected to
-func (m *Manager) AddClusterNode(n Node) {
+func (m *Manager) AddClusterNode(nodeName, nodeAddr string) {
 	m.Lock()
 	defer m.Unlock()
-	n.statusStr = StatusNew
-	m.configuredNodes[n.name] = n
+	m.configuredNodes[nodeName] = Node{
+		name:      nodeName,
+		addr:      nodeAddr,
+		statusStr: StatusNew,
+	}
 	select {
-	case m.internalMessage <- internalMessage{Type: "nodeadd", Node: n.name}:
+	case m.internalMessage <- internalMessage{Type: "nodeadd", Node: nodeName}:
 	default:
 	}
 }
 
 // RemoveClusterNode remove a cluster node from the list of servers to connect to, and close its connections
-func (m *Manager) RemoveClusterNode(n Node) {
+func (m *Manager) RemoveClusterNode(nodeName string) {
 	m.Lock()
 	defer m.Unlock()
-	m.log("%s is removing node %s", m.name, n.name)
-	if _, ok := m.configuredNodes[n.name]; ok {
-		delete(m.configuredNodes, n.name)
+	m.log("%s is removing node %s", m.name, nodeName)
+	if _, ok := m.configuredNodes[nodeName]; ok {
+		delete(m.configuredNodes, nodeName)
 	}
 	select {
-	case m.internalMessage <- internalMessage{Type: "noderemove", Node: n.name}:
+	case m.internalMessage <- internalMessage{Type: "noderemove", Node: nodeName}:
 	default:
 	}
-	m.connectedNodes.close(n.name)
+	m.connectedNodes.close(nodeName)
 }
 
 func (m *Manager) getConfiguredNodes() (nodes []Node) {

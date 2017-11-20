@@ -62,7 +62,7 @@ func TestTwoClusterNode(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	managerTWO.AddClusterNode(Node{name: "managerTHREE", addr: "127.0.0.1:9503"})
+	managerTWO.AddClusterNode("managerTHREE", "127.0.0.1:9503")
 
 	// Manager B
 	//time.Sleep(200 * time.Millisecond)
@@ -71,7 +71,7 @@ func TestTwoClusterNode(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	managerTHREE.AddClusterNode(Node{name: "managerTWO", addr: "127.0.0.1:9502"})
+	managerTHREE.AddClusterNode("managerTWO", "127.0.0.1:9502")
 
 	node, timeout := channelReadString(managerTWO.NodeJoin, 5)
 	if timeout {
@@ -136,8 +136,8 @@ func TestTreeNodeCluster(t *testing.T) {
 	t.Parallel()
 	// Manager 4
 	managerFOUR := NewManager("managerFOUR", "secret")
-	managerFOUR.AddClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
-	managerFOUR.AddClusterNode(Node{name: "managerSIX", addr: "127.0.0.1:9506"})
+	managerFOUR.AddClusterNode("managerFIVE", "127.0.0.1:9505")
+	managerFOUR.AddClusterNode("managerSIX", "127.0.0.1:9506")
 	err := managerFOUR.ListenAndServe("127.0.0.1:9504")
 	if err != nil {
 		log.Fatal(err)
@@ -154,9 +154,9 @@ func TestTreeNodeCluster(t *testing.T) {
 
 	// Manager 5
 	managerFIVE := NewManager("managerFIVE", "secret")
-	managerFIVE.AddClusterNode(Node{name: "managerFOUR", addr: "127.0.0.1:9504"})
+	managerFIVE.AddClusterNode("managerFOUR", "127.0.0.1:9504")
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
-	managerFIVE.AddClusterNode(Node{name: "managerSIX", addr: "127.0.0.1:9506"})
+	managerFIVE.AddClusterNode("managerSIX", "127.0.0.1:9506")
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
 	err = managerFIVE.ListenAndServe("127.0.0.1:9505")
 	if err != nil {
@@ -174,8 +174,8 @@ func TestTreeNodeCluster(t *testing.T) {
 
 	// Manager 6
 	managerSIX := NewManager("managerSIX", "secret")
-	managerSIX.AddClusterNode(Node{name: "managerFOUR", addr: "127.0.0.1:9504"})
-	managerSIX.AddClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
+	managerSIX.AddClusterNode("managerFOUR", "127.0.0.1:9504")
+	managerSIX.AddClusterNode("managerFIVE", "127.0.0.1:9505")
 	err = managerSIX.ListenAndServe("127.0.0.1:9506")
 	if err != nil {
 		log.Fatal(err)
@@ -304,7 +304,7 @@ func TestTreeNodeCluster(t *testing.T) {
 	}
 
 	// add 1 more node, 4 node cluster, with 2 down
-	managerFOUR.AddClusterNode(Node{name: "managerSeven", addr: "127.0.0.1:9507"}) // non working node
+	managerFOUR.AddClusterNode("managerSeven", "127.0.0.1:9507") // non working node
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
 	if timeout {
 		t.Errorf("expected quorumstate on managerFOUR, but got timeout")
@@ -314,9 +314,9 @@ func TestTreeNodeCluster(t *testing.T) {
 	}
 
 	// RemoveClusterNode 7 and 4 - we should have a 2 cluster node now
-	managerFOUR.RemoveClusterNode(Node{name: "managerSeven", addr: "127.0.0.1:9507"})
+	managerFOUR.RemoveClusterNode("managerSeven")
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)
-	managerFOUR.RemoveClusterNode(Node{name: "managerFIVE", addr: "127.0.0.1:9505"})
+	managerFOUR.RemoveClusterNode("managerFIVE")
 
 	// quorum should be ok, we only lost 1 our of 2 nodes
 	quorum, timeout = channelReadBool(managerFOUR.QuorumState, 2)

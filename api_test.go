@@ -27,7 +27,7 @@ func TestApi(t *testing.T) {
 
 	// Start Manager for API
 	managerAPI := NewManager("managerAPI", "secret")
-	managerAPI.AddClusterNode(Node{name: "managerAPI2", addr: "127.0.0.1:9599"})
+	managerAPI.AddClusterNode("managerAPI2", "127.0.0.1:9599")
 	err := managerAPI.ListenAndServe("127.0.0.1:9500")
 	if err != nil {
 		log.Fatal(err)

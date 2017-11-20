@@ -15,7 +15,7 @@ func TestExample(t *testing.T) {
 func Example() {
 	// start cluster 1
 	manager := NewManager("node1", "secret")
-	manager.AddClusterNode(Node{name: "node2", addr: "127.0.0.1:9605"})
+	manager.AddClusterNode("node2", "127.0.0.1:9605")
 	err := manager.ListenAndServe("127.0.0.1:9604")
 	if err != nil {
 		log.Fatal(err)
@@ -23,7 +23,7 @@ func Example() {
 
 	// start cluster 2
 	manager2 := NewManager("node2", "secret")
-	manager2.AddClusterNode(Node{name: "node1", addr: "127.0.0.1:9604"})
+	manager2.AddClusterNode("node1", "127.0.0.1:9604")
 	err = manager2.ListenAndServe("127.0.0.1:9605")
 	if err != nil {
 		log.Fatal(err)

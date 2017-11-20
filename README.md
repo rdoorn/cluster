@@ -18,7 +18,7 @@ type CustomMessage struct{ Text: string }
 
 func main() {
   manager := NewManager("node1", "secret")
-  manager.AddClusterNode(Node{name: "node2", addr: "127.0.0.1:9505"})
+  manager.AddClusterNode("node2", "127.0.0.1:9505"})
   err := manager.ListenAndServe("127.0.0.1:9504")
   if err != nil {
     log.Fatal(err)
@@ -26,9 +26,9 @@ func main() {
   manager.ToCluster <- CustomMessage{ Text: "Hello World!" } // will send data to all nodes except self
   for {
     select {
-      case package := <- manager.FromCluster:
+		  case packet := <- manager.FromCluster:
         cm := &CustomMessage
-        err := package.Message(cm)
+        err := packet.Message(cm)
         if err != nil {
           log.Println("Unable to get message from package: %s", err)
         }
