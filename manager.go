@@ -200,3 +200,14 @@ func (m *Manager) getConfiguredNodes() (nodes []Node) {
 	}
 	return
 }
+
+// StateDump dumps the current state of the cluster to the log
+func (m *Manager) StateDump() {
+	m.log("cluster state:")
+	for _, node := range m.configuredNodes {
+		m.log("configured nodes: %+v", node)
+	}
+	for _, node := range m.connectedNodes.nodes {
+		m.log("connected nodes: %+v", node)
+	}
+}

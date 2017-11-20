@@ -68,7 +68,7 @@ func (m *Manager) pinger(node *Node) {
 		m.log("Sending ping to %s (%s)", node.name, node.conn.RemoteAddr())
 		err := m.connectedNodes.writeSocket(node.conn, p)
 		if err != nil {
-			m.log("Failed to send ping to %s (%s)", m.name, node.conn.RemoteAddr())
+			m.log("Failed to send ping to %s (%s). Error:%s", node.name, node.conn.RemoteAddr(), err.Error())
 			node.close()
 			return
 		}
