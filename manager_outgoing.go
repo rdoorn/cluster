@@ -39,17 +39,19 @@ func (m *Manager) dial(name, addr string) {
 		if err != nil {
 			// close connection if someone is talking gibrish
 			conn.Close()
+			return
 		}
-		m.log("received packet: %+v", packet)
 		authResponse := &packetAuthResponse{}
 		err = packet.Message(authResponse)
 		if err != nil {
 			// auth response unknown
 			conn.Close()
+			return
 		}
 		if authResponse.Status != true {
-
 			m.log("auth failed on dial: %s", authResponse.Error)
+			conn.Close()
+			return
 		}
 
 		node := newNode(packet.Name, conn)
