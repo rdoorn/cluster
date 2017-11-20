@@ -40,6 +40,7 @@ func (m *Manager) dial(name, addr string) {
 			// close connection if someone is talking gibrish
 			conn.Close()
 		}
+		m.log("received packet: %+v", packet)
 		authResponse := &packetAuthResponse{}
 		err = packet.Message(authResponse)
 		if err != nil {
