@@ -184,8 +184,8 @@ func (m *Manager) updateQuorum() {
 	}
 }
 
-// AddClusterNode adds a cluster node to the cluster to be connected to
-func (m *Manager) AddClusterNode(nodeName, nodeAddr string) {
+// AddNode adds a cluster node to the cluster to be connected to
+func (m *Manager) AddNode(nodeName, nodeAddr string) {
 	m.Lock()
 	defer m.Unlock()
 	m.configuredNodes[nodeName] = Node{
@@ -199,8 +199,18 @@ func (m *Manager) AddClusterNode(nodeName, nodeAddr string) {
 	}
 }
 
-// RemoveClusterNode remove a cluster node from the list of servers to connect to, and close its connections
-func (m *Manager) RemoveClusterNode(nodeName string) {
+// NodeConfigured returns true or false if a node is configured in the manager
+func (m *Manager) NodeConfigured(nodeName string) bool {
+	m.RLock()
+	defer m.RUnlock()
+	if _, ok := m.configuredNodes[nodeName]; ok {
+		return true
+	}
+	return false
+}
+
+// RemoveNode remove a cluster node from the list of servers to connect to, and close its connections
+func (m *Manager) RemoveNode(nodeName string) {
 	m.Lock()
 	defer m.Unlock()
 	m.log("%s is removing node %s", m.name, nodeName)
