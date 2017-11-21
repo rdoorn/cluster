@@ -351,21 +351,67 @@ func TestTreeNodeCluster(t *testing.T) {
 	}
 }
 
-func TestOneClusterNodeTLS(t *testing.T) {
+func TestTWOClusterNodeTLS(t *testing.T) {
 	t.Parallel()
 
+	/*
+			cer, err := tls.LoadX509KeyPair("self-signed.crt", "self-signed.key")
+			if err != nil {
+				t.Errorf("Error reading key pair: %s", err)
+			}
+			tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}, InsecureSkipVerify: true}
+
+		managerNINE := NewManager("managerNINE", "secret")
+		//err = managerNINE.ListenAndServeTLS("127.0.0.1:9509", tlsConfig)
+		err := managerNINE.ListenAndServe("127.0.0.1:9509")
+		if err != nil {
+			log.Fatal(err)
+		}
+		managerNINE.AddNode("managerTEN", "127.0.0.1.9510")
+
+
+			conf := &tls.Config{
+				InsecureSkipVerify: true,
+			}
+
+			_, err = tls.Dial("tcp", "127.0.0.1:9509", conf)
+			if err != nil {
+				t.Errorf("tls.Dial failed to managerNINE, error: %s", err)
+			}
+
+
+		managerTEN := NewManager("managerTEN", "secret")
+		//err = managerTEN.ListenAndServeTLS("127.0.0.1:9510", tlsConfig)
+		err = managerTEN.ListenAndServe("127.0.0.1:9510")
+		if err != nil {
+			log.Fatal(err)
+		}
+		managerTEN.AddNode("managerNINE", "127.0.0.1.9509")
+
+		node, timeout := channelReadString(managerNINE.NodeJoin, 5)
+		if timeout {
+			t.Errorf("expected Join on managerNINE, but got timeout")
+		}
+		if node != "managerTEN" {
+			t.Errorf("expected Join on managerNINE to be from managerTEN, but got:%s", node)
+		}
+
+		managerNINE.Shutdown()
+	*/
 	cer, err := tls.LoadX509KeyPair("self-signed.crt", "self-signed.key")
 	if err != nil {
 		t.Errorf("Error reading key pair: %s", err)
 	}
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}, InsecureSkipVerify: true}
 
 	managerNINE := NewManager("managerNINE", "secret")
 	err = managerNINE.ListenAndServeTLS("127.0.0.1:9509", tlsConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
+	managerNINE.AddNode("managerTEN", "127.0.0.1:9510")
 
+	// TLS check
 	conf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -375,7 +421,38 @@ func TestOneClusterNodeTLS(t *testing.T) {
 		t.Errorf("tls.Dial failed to managerNINE, error: %s", err)
 	}
 
-	managerNINE.Shutdown()
+	managerTEN := NewManager("managerTEN", "secret")
+	err = managerTEN.ListenAndServeTLS("127.0.0.1:9510", tlsConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	managerTEN.AddNode("managerNINE", "127.0.0.1:9509")
+
+	node, timeout := channelReadString(managerNINE.NodeJoin, 5)
+	if timeout {
+		t.Errorf("expected Join on managerNINE, but got timeout")
+	}
+	if node != "managerTEN" {
+		t.Errorf("expected Join on managerNINE to be from managerTEN, but got:%s", node)
+	}
+
+	node, timeout = channelReadString(managerTEN.NodeJoin, 5)
+	if timeout {
+		t.Errorf("expected Join on managerTEN, but got timeout")
+	}
+	if node != "managerNINE" {
+		t.Errorf("expected Join on managerTEN to be from managerNINE, but got:%s", node)
+	}
+
+	logs := channelReadStrings(managerNINE.Log, 1)
+	if len(logs) == 0 {
+		t.Errorf("expected log output for managerNINE, but got nothing")
+	}
+
+	for _, log := range logs {
+		t.Log("== LOG managerNINE: ", log)
+	}
+
 }
 
 // channelWriteTimeout writes a message to a channel, or will timeout if failed

@@ -47,6 +47,7 @@ type Manager struct {
 	NodeJoin         chan string          // returns string of the node joining
 	NodeLeave        chan string          // returns string of the node leaving
 	QuorumState      chan bool            // returns the current quorum state
+	useTLS           bool                 // wether or not to use tls
 }
 
 var managers = struct {
@@ -118,9 +119,10 @@ func (m *Manager) addClusterAPI() {
 func (m *Manager) ListenAndServeTLS(addr string, tlsConfig *tls.Config) (err error) {
 	m.log("Starting listener on %s", addr)
 	s := newServer(addr, tlsConfig)
+	m.useTLS = true
 	m.listener, err = s.Listen()
 	if err == nil {
-		m.start(s)
+		m.start(s, tlsConfig)
 	}
 	return
 }
@@ -131,16 +133,16 @@ func (m *Manager) ListenAndServe(addr string) (err error) {
 	s := newServer(addr, &tls.Config{})
 	m.listener, err = s.Listen()
 	if err == nil {
-		m.start(s)
+		m.start(s, &tls.Config{})
 	}
 	return
 }
 
-func (m *Manager) start(s *server) {
-	go m.handleIncommingConnections() // handles incommin socket connections
-	go m.handleOutgoingConnections()  // creates connections to remote nodes
-	go m.handlePackets()              // handles all incomming packets
-	go s.Serve(m.newSocket, m.quit)   // accepts new connections and passes them on to the manager
+func (m *Manager) start(s *server, tlsConfig *tls.Config) {
+	go m.handleIncommingConnections()         // handles incommin socket connections
+	go m.handleOutgoingConnections(tlsConfig) // creates connections to remote nodes
+	go m.handlePackets()                      // handles all incomming packets
+	go s.Serve(m.newSocket, m.quit)           // accepts new connections and passes them on to the manager
 	m.log("Cluster quorum state: %t", m.quorum())
 	select {
 	case m.QuorumState <- m.quorum(): // quorum update to client application

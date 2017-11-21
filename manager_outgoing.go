@@ -1,11 +1,12 @@
 package cluster
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
 )
 
-func (m *Manager) handleOutgoingConnections() {
+func (m *Manager) handleOutgoingConnections(tlsConfig *tls.Config) {
 	for {
 		select {
 		case <-m.quit:
@@ -20,7 +21,7 @@ func (m *Manager) handleOutgoingConnections() {
 			if !m.connectedNodes.nodeExists(node.name) {
 				// Connect to the remote cluster node
 				m.log("Connecting to non-connected cluster node: %s", node.name)
-				m.dial(node.name, node.addr)
+				m.dial(node.name, node.addr, tlsConfig)
 			}
 		}
 		//w ait before we try again
@@ -28,9 +29,20 @@ func (m *Manager) handleOutgoingConnections() {
 	}
 }
 
-func (m *Manager) dial(name, addr string) {
+func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 	m.log("Connecting to %s (%s)", name, addr)
-	conn, err := net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
+	var conn net.Conn
+	var err error
+	if m.useTLS == false {
+		conn, err = net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
+	} else {
+		m.log("DIAL TLS: %+v", time.Now())
+		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: m.getDuration("connecttimeout")}, "tcp", addr, tlsConfig)
+		if err != nil {
+			m.log("DIAL TLS END ERROR: %+v %s", time.Now(), err)
+		}
+		m.log("DIAL TLS END: %+v", time.Now())
+	}
 	if err == nil {
 		// on dialing out, we need to send an auth
 		authRequest, _ := m.newPacket(packetAuthRequest{AuthKey: m.authKey})

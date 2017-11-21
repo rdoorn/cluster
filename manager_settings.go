@@ -19,7 +19,7 @@ func defaultSetting() Settings {
 		PingInterval:    5 * time.Second,
 		JoinDelay:       500 * time.Millisecond,
 		ReadTimeout:     11 * time.Second,
-		ConnectInterval: 5 * time.Second,
+		ConnectInterval: 2 * time.Second,
 		ConnectTimeout:  10 * time.Second,
 	}
 	return s
