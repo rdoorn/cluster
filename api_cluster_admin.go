@@ -21,7 +21,7 @@ type apiClusterAdminHandler struct {
 */
 
 func (h apiClusterAdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.Split(strings.TrimLeft(r.URL.Path, "/api/cluster/"), "/")
+	path := strings.Split(strings.TrimLeft(r.URL.Path, "/api/v1/cluster/"), "/")
 	if len(path) != 4 {
 		apiWriteData(w, 501, apiMessage{Success: false, Data: "Unknown request parameters"})
 		return

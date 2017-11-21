@@ -107,10 +107,10 @@ func (m *Manager) addClusterAPI() {
 	managers.Lock()
 	defer managers.Unlock()
 
-	http.Handle("/api/cluster/"+m.name+"/admin/", authenticate(apiClusterAdminHandler{manager: m}, m.authKey))
-	http.Handle("/api/cluster/"+m.name, apiClusterPublicHandler{manager: m})
+	http.Handle("/api/v1/cluster/"+m.name+"/admin/", authenticate(apiClusterAdminHandler{manager: m}, m.authKey))
+	http.Handle("/api/v1/cluster/"+m.name, apiClusterPublicHandler{manager: m})
 	if managers.clusterAPISet == false {
-		http.Handle("/api/cluster", apiClusterHandler{})
+		http.Handle("/api/v1/cluster", apiClusterHandler{})
 		managers.clusterAPISet = true
 	}
 }

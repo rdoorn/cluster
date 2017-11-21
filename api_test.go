@@ -113,7 +113,7 @@ func (h apiLogin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func testAPICluster(t *testing.T) {
 	// generate a new auth key
-	url := "/api/cluster"
+	url := "/api/v1/cluster"
 	data, statusCode, err := getWithKey("nokey", "http://"+httpAddr+url)
 	if err != nil {
 		t.Errorf("failed to get %s, error:%s", url, err)
@@ -148,7 +148,7 @@ func testAPICluster(t *testing.T) {
 }
 
 func testAPIClusterPublic(t *testing.T) {
-	url := "/api/cluster/managerAPI"
+	url := "/api/v1/cluster/managerAPI"
 	data, statusCode, err := getWithKey("nokey", "http://"+httpAddr+url)
 	if err != nil {
 		t.Errorf("failed to get %s, error:%s", url, err)
@@ -177,7 +177,7 @@ func testAPIClusterPublic(t *testing.T) {
 
 func testAPIClusterAdmin(t *testing.T) {
 	// Get requests of private interface without key
-	url := "/api/cluster/managerAPI/admin/managerAPI2/shutdown"
+	url := "/api/v1/cluster/managerAPI/admin/managerAPI2/shutdown"
 	_, statusCode, err := getWithKey("nokey", "http://"+httpAddr+url)
 	if err != nil {
 		t.Errorf("failed to get %s, error:%s", url, err)
