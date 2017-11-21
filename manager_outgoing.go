@@ -36,12 +36,7 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 	if m.useTLS == false {
 		conn, err = net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
 	} else {
-		m.log("DIAL TLS: %+v", time.Now())
 		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: m.getDuration("connecttimeout")}, "tcp", addr, tlsConfig)
-		if err != nil {
-			m.log("DIAL TLS END ERROR: %+v %s", time.Now(), err)
-		}
-		m.log("DIAL TLS END: %+v", time.Now())
 	}
 	if err == nil {
 		// on dialing out, we need to send an auth
