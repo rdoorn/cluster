@@ -37,11 +37,12 @@ const (
 
 func newNode(name string, conn net.Conn) *Node {
 	newNode := &Node{
-		name:   name,
-		conn:   conn,
-		reader: bufio.NewReader(conn),
-		writer: bufio.NewWriter(conn),
-		quit:   make(chan bool),
+		name:      name,
+		conn:      conn,
+		reader:    bufio.NewReader(conn),
+		writer:    bufio.NewWriter(conn),
+		quit:      make(chan bool),
+		statusStr: StatusNew,
 	}
 	return newNode
 }

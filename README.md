@@ -30,9 +30,9 @@ func main() {
         cm := &CustomMessage
         err := packet.Message(cm)
         if err != nil {
-          log.Println("Unable to get message from package: %s", err)
+          log.Printf("Unable to get message from package: %s\n", err)
         }
-        log.Println("we received a custom message: %s", cm.Text)
+        log.Printf("we received a custom message: %s\n", cm.Text)
     }
   }
 }
@@ -60,7 +60,7 @@ manager.NodeLeave   | ->        | string      | no       | name of node leaving 
 
         $ git checkout -b my_bug_fix
 
-3. Make your changes/patches/fixes, committing appropiately
+3. Make your changes/patches/fixes, committing appropriately
 4. **Write tests**
 5. Run tests
 
