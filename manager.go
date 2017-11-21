@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+var (
+	// ChannelBufferSize the size of the channel buffer
+	ChannelBufferSize = 100
+)
+
 // InternalMessage is used for internal communication within the cluster
 type internalMessage struct {
 	Type  string `json:"type"`
@@ -58,15 +63,15 @@ func NewManager(name, authKey string) *Manager {
 		configuredNodes:  make(map[string]Node),
 		connectedNodes:   newConnectionPool(),
 		newSocket:        make(chan net.Conn),
-		internalMessage:  make(chan internalMessage),
-		apiRequest:       make(chan APIRequest),
-		incommingPackets: make(chan Packet),
+		internalMessage:  make(chan internalMessage, 100),
+		apiRequest:       make(chan APIRequest, 100),
+		incommingPackets: make(chan Packet, 100),
 		quit:             make(chan bool),
-		FromCluster:      make(chan Packet),
-		FromClusterAPI:   make(chan APIRequest, 10),
-		ToCluster:        make(chan interface{}),
-		ToNode:           make(chan NodeMessage),
-		Log:              make(chan string, 500),
+		FromCluster:      make(chan Packet, ChannelBufferSize),
+		FromClusterAPI:   make(chan APIRequest, ChannelBufferSize),
+		ToCluster:        make(chan interface{}, ChannelBufferSize),
+		ToNode:           make(chan NodeMessage, 100),
+		Log:              make(chan string, ChannelBufferSize),
 		NodeJoin:         make(chan string, 10),
 		NodeLeave:        make(chan string, 10),
 		QuorumState:      make(chan bool, 10),

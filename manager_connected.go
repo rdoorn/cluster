@@ -12,7 +12,7 @@ func (m *Manager) handleAuthorizedConnection(node *Node) {
 	if err != nil { // err means we already have a node with this name, node was not added
 		if oldNode.joinTime.Before(node.joinTime) {
 			// close the newest connection, the old one has to timeout before joining again
-			m.log("%s failed to join, there is a older connection still active. closing this connection (%s)", node.conn.RemoteAddr())
+			m.log("%s failed to join, there is a older connection still active. closing this connection (%s)", node.name, node.conn.RemoteAddr())
 			node.close()
 			return
 		}

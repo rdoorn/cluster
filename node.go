@@ -50,7 +50,7 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 	for {
 		// Close connection when this function ends
 		defer func() {
-			n.conn.Close()
+			n.close()
 		}()
 
 		for {
@@ -59,21 +59,21 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 
 			bytes, err := n.reader.ReadBytes('\n')
 			if err != nil {
-
 				select {
 				case <-quit:
 					return fmt.Errorf("ioreader got quit signal for %s", n.name)
 				default:
 				}
-
 				return fmt.Errorf("error reading from %s (%s)", n.name, err)
 			}
 			packet, err := UnpackPacket(bytes)
 			if err != nil {
-				fmt.Println(err)
-				return fmt.Errorf("unable to unpack packet: %s", err) // fail if we do not understand the packet
+				return fmt.Errorf("unable to unpack packet: %s. disconnecting client", err) // fail if we do not understand the packet
 			}
-			packetManager <- *packet
+			select {
+			case packetManager <- *packet:
+			default:
+			}
 		}
 
 	}
@@ -81,10 +81,10 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 
 func (n *Node) close() {
 	// FIXME: nicer close with sync.Once (http://www.tapirgames.com/blog/golang-channel-closing)
-	defer func() {
+	/*defer func() {
 		if recover() != nil {
 		}
-	}()
+	}()*/
 
 	select {
 	case <-n.quit:

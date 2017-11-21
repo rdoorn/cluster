@@ -38,6 +38,7 @@ func (m *Manager) handlePackets() {
 			select {
 			case m.FromClusterAPI <- message:
 			default:
+				m.log("Unable to write API message to FromClusterAPI. Channel full!")
 			}
 		case message := <-m.internalMessage: // incomming intenal messages (do not leave this library)
 			switch message.Type {
@@ -79,7 +80,11 @@ func (m *Manager) handlePackets() {
 				m.connectedNodes.setLag(packet.Name, time.Now().Sub(packet.Time))
 			default:
 				m.log("Recieved non-cluster packet: %s", packet.DataType)
-				m.FromCluster <- packet // outgoing to client application
+				select {
+				case m.FromCluster <- packet: // outgoing to client application
+				default:
+					m.log("unable to send data to FromCluster channel, channel full!", packet.DataType)
+				}
 			}
 		}
 	}
