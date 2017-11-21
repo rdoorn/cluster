@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"crypto/tls"
 	"net"
 	"net/http"
 	"sync"
@@ -113,17 +114,33 @@ func (m *Manager) addClusterAPI() {
 	}
 }
 
+// ListenAndServeTLS starts the TLS listener and serves connections to clients
+func (m *Manager) ListenAndServeTLS(addr string, tlsConfig *tls.Config) (err error) {
+	m.log("Starting listener on %s", addr)
+	s := newServer(addr, tlsConfig)
+	m.listener, err = s.Listen()
+	if err == nil {
+		m.start(s)
+	}
+	return
+}
+
 // ListenAndServe starts the listener and serves connections to clients
 func (m *Manager) ListenAndServe(addr string) (err error) {
 	m.log("Starting listener on %s", addr)
-	s := Server{addr: addr}
+	s := newServer(addr, &tls.Config{})
 	m.listener, err = s.Listen()
 	if err == nil {
-		go m.handleIncommingConnections() // handles incommin socket connections
-		go m.handleOutgoingConnections()  // creates connections to remote nodes
-		go m.handlePackets()              // handles all incomming packets
-		go s.Serve(m.newSocket, m.quit)   // accepts new connections and passes them on to the manager
+		m.start(s)
 	}
+	return
+}
+
+func (m *Manager) start(s *server) {
+	go m.handleIncommingConnections() // handles incommin socket connections
+	go m.handleOutgoingConnections()  // creates connections to remote nodes
+	go m.handlePackets()              // handles all incomming packets
+	go s.Serve(m.newSocket, m.quit)   // accepts new connections and passes them on to the manager
 	m.log("Cluster quorum state: %t", m.quorum())
 	select {
 	case m.QuorumState <- m.quorum(): // quorum update to client application
