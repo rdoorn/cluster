@@ -199,6 +199,17 @@ func (m *Manager) AddNode(nodeName, nodeAddr string) {
 	}
 }
 
+// NodesConfigured returns all nodes configured to be part of the cluster
+func (m *Manager) NodesConfigured() map[string]bool {
+	node := make(map[string]bool)
+	m.RLock()
+	defer m.RUnlock()
+	for name := range m.configuredNodes {
+		node[name] = true
+	}
+	return node
+}
+
 // NodeConfigured returns true or false if a node is configured in the manager
 func (m *Manager) NodeConfigured(nodeName string) bool {
 	m.RLock()

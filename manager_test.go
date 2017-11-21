@@ -3,6 +3,7 @@ package cluster
 import (
 	"crypto/tls"
 	"log"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -64,6 +65,17 @@ func TestTwoClusterNode(t *testing.T) {
 		log.Fatal(err)
 	}
 	managerTWO.AddNode("managerTHREE", "127.0.0.1:9503")
+
+	shouldBeConfigured := map[string]bool{"managerTHREE": true}
+	configured := managerTWO.NodesConfigured()
+	if eq := reflect.DeepEqual(configured, shouldBeConfigured); !eq {
+		t.Errorf("Nodes Configured did not return %+v but: %+v", shouldBeConfigured, configured)
+
+	}
+
+	if !managerTWO.NodeConfigured("managerTHREE") {
+		t.Errorf("NodeConfigured did not see managerTHREE as configured but it should!")
+	}
 
 	// Manager B
 	//time.Sleep(200 * time.Millisecond)
