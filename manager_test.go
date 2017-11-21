@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"crypto/tls"
 	"log"
 	"sync"
 	"testing"
@@ -336,6 +337,33 @@ func TestTreeNodeCluster(t *testing.T) {
 	for _, log := range logs {
 		t.Log("== LOG: ", log)
 	}
+}
+
+func TestOneClusterNodeTLS(t *testing.T) {
+	t.Parallel()
+
+	cer, err := tls.LoadX509KeyPair("self-signed.crt", "self-signed.key")
+	if err != nil {
+		t.Errorf("Error reading key pair: %s", err)
+	}
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+	managerNINE := NewManager("managerNINE", "secret")
+	err = managerNINE.ListenAndServeTLS("127.0.0.1:9509", tlsConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	_, err = tls.Dial("tcp", "127.0.0.1:9509", conf)
+	if err != nil {
+		t.Errorf("tls.Dial failed to managerNINE, error: %s", err)
+	}
+
+	managerNINE.Shutdown()
 }
 
 // channelWriteTimeout writes a message to a channel, or will timeout if failed
