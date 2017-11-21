@@ -1,11 +1,10 @@
 package cluster
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -13,7 +12,7 @@ import (
 
 var (
 	// APITokenSigningKey is key used to sign jtw tokens
-	APITokenSigningKey = []byte("a8Z(u5ETyCF4BZSlb9sMm3NuAjf'jBJT3UJ{6WpD=wZbivuFLxZvmSsE2j.ZbdDr")
+	APITokenSigningKey = rndKey()
 	// APITokenDuration is how long the jwt token is valid
 	APITokenDuration = 1 * time.Hour
 	// APIEnabled defines wether or not the API is enabled
@@ -38,6 +37,12 @@ type APIRequest struct {
 	Manager string `json:"manager"`
 	Node    string `json:"node"`
 	Data    string `json:"data"`
+}
+
+func rndKey() []byte {
+	token := make([]byte, 128)
+	rand.Read(token)
+	return token
 }
 
 func (h apiAuthentication) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -73,12 +78,6 @@ func (h apiAuthentication) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Authenticate user
 func authenticate(h http.Handler, authKey string) apiAuthentication {
 	return apiAuthentication{h, authKey}
-}
-
-func apiStatus(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, strings.Join(os.Args, "\x00"))
-
 }
 
 func apiMakeKey(username, key string, epoch int64) (string, error) {
