@@ -34,8 +34,9 @@ func (h apiClusterPublicHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	for _, configured := range h.manager.configuredNodes {
 
 		n := APIClusterNode{
-			Name: configured.name,
-			Addr: configured.addr,
+			Name:   configured.name,
+			Addr:   configured.addr,
+			Status: configured.statusStr,
 		}
 
 		if active, ok := h.manager.connectedNodes.nodes[configured.name]; ok {

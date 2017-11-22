@@ -23,8 +23,8 @@ type Node struct {
 }
 
 const (
-	// StatusNew is a new node
-	StatusNew = "New"
+	// StatusOffline is a new node, starting in offline state
+	StatusOffline = "Offline"
 	// StatusAuthenticating is a node doing authentication
 	StatusAuthenticating = "Authenticating"
 	// StatusShutdown is a node stopping
@@ -42,7 +42,7 @@ func newNode(name string, conn net.Conn) *Node {
 		reader:    bufio.NewReader(conn),
 		writer:    bufio.NewWriter(conn),
 		quit:      make(chan bool),
-		statusStr: StatusNew,
+		statusStr: StatusOffline,
 	}
 	return newNode
 }

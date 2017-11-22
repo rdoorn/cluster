@@ -193,7 +193,7 @@ func (m *Manager) AddNode(nodeName, nodeAddr string) {
 	m.configuredNodes[nodeName] = Node{
 		name:      nodeName,
 		addr:      nodeAddr,
-		statusStr: StatusNew,
+		statusStr: StatusOffline,
 	}
 	select {
 	case m.internalMessage <- internalMessage{Type: "nodeadd", Node: nodeName}:
