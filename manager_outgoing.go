@@ -33,7 +33,7 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 	m.log("Connecting to %s (%s)", name, addr)
 	var conn net.Conn
 	var err error
-	if m.useTLS == false {
+	if len(tlsConfig.Certificates) == 0 {
 		m.log("Connecting to %s (%s) non-tls", name, addr)
 		conn, err = net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
 	} else {

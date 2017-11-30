@@ -117,9 +117,9 @@ func (m *Manager) addClusterAPI() {
 
 // ListenAndServeTLS starts the TLS listener and serves connections to clients
 func (m *Manager) ListenAndServeTLS(addr string, tlsConfig *tls.Config) (err error) {
-	m.log("Starting listener on %s", addr)
+	m.log("Starting TLS listener on %s", addr)
 	s := newServer(addr, tlsConfig)
-	m.useTLS = true
+	//m.useTLS = true
 	m.listener, err = s.Listen()
 	if err == nil {
 		m.start(s, tlsConfig)
