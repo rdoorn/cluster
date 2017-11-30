@@ -34,8 +34,10 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 	var conn net.Conn
 	var err error
 	if m.useTLS == false {
+		m.log("Connecting to %s (%s) non-tls", name, addr)
 		conn, err = net.DialTimeout("tcp", addr, m.getDuration("connecttimeout"))
 	} else {
+		m.log("Connecting to %s (%s) with-tls", name, addr)
 		conn, err = tls.DialWithDialer(&net.Dialer{Timeout: m.getDuration("connecttimeout")}, "tcp", addr, tlsConfig)
 	}
 	if err == nil {
@@ -61,6 +63,7 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 			return
 		}
 
+		m.log("Connection to %s (%s) authorized", name, addr)
 		node := newNode(packet.Name, conn)
 		node.joinTime = authResponse.Time
 
