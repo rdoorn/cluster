@@ -10,7 +10,7 @@ func (m *Manager) handleIncommingConnections() {
 		case conn := <-m.newSocket:
 			packet, err := m.connectedNodes.readSocket(conn)
 			if err != nil {
-				m.log("%s failed while trying to read from socket", conn.RemoteAddr())
+				m.log("%s failed while trying to read from socket: %s", conn.RemoteAddr(), err)
 				conn.Close()
 				continue
 			}

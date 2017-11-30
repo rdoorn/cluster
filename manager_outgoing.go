@@ -47,6 +47,7 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 		packet, err := m.connectedNodes.readSocket(conn)
 		if err != nil {
 			// close connection if someone is talking gibrish
+			m.log("auth request failed on dial: %s", err)
 			conn.Close()
 			return
 		}
@@ -54,6 +55,7 @@ func (m *Manager) dial(name, addr string, tlsConfig *tls.Config) {
 		err = packet.Message(authResponse)
 		if err != nil {
 			// auth response unknown
+			m.log("auth response failed on dial: %s", err)
 			conn.Close()
 			return
 		}
