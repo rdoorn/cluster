@@ -117,9 +117,8 @@ func (m *Manager) addClusterAPI() {
 
 // ListenAndServeTLS starts the TLS listener and serves connections to clients
 func (m *Manager) ListenAndServeTLS(addr string, tlsConfig *tls.Config) (err error) {
-	m.log("Starting TLS listener on %s", addr)
+	m.log("%s Starting TLS listener on %s", m.name, addr)
 	s := newServer(addr, tlsConfig)
-	//m.useTLS = true
 	m.listener, err = s.Listen()
 	if err == nil {
 		m.start(s, tlsConfig)
@@ -129,7 +128,7 @@ func (m *Manager) ListenAndServeTLS(addr string, tlsConfig *tls.Config) (err err
 
 // ListenAndServe starts the listener and serves connections to clients
 func (m *Manager) ListenAndServe(addr string) (err error) {
-	m.log("Starting listener on %s", addr)
+	m.log("%s Starting listener on %s", m.name, addr)
 	s := newServer(addr, &tls.Config{})
 	m.listener, err = s.Listen()
 	if err == nil {
@@ -143,7 +142,7 @@ func (m *Manager) start(s *server, tlsConfig *tls.Config) {
 	go m.handleOutgoingConnections(tlsConfig) // creates connections to remote nodes
 	go m.handlePackets()                      // handles all incomming packets
 	go s.Serve(m.newSocket, m.quit)           // accepts new connections and passes them on to the manager
-	m.log("Cluster quorum state: %t", m.quorum())
+	m.log("%s Cluster quorum state: %t", m.name, m.quorum())
 	select {
 	case m.QuorumState <- m.quorum(): // quorum update to client application
 	default:
@@ -153,7 +152,7 @@ func (m *Manager) start(s *server, tlsConfig *tls.Config) {
 
 // Shutdown stops the cluster node
 func (m *Manager) Shutdown() {
-	m.log("Stopping listener on %s", m.listener.Addr())
+	m.log("%s Stopping listener on %s", m.name, m.listener.Addr())
 	// write exit message to remote cluster
 	packet, _ := m.newPacket(&packetNodeShutdown{})
 	m.connectedNodes.writeAll(packet)
@@ -174,12 +173,12 @@ func (m *Manager) quorum() bool {
 	case 1:
 		return true // 2 cluster node, we don't send quorum loss, as that would nullify the additional node
 	default:
-		return float64(len(m.configuredNodes)+1)/2 < float64(len(m.connectedNodes.nodes)+1) // +1 to add our selves
+		return float64(len(m.configuredNodes)+1)/2 < float64(m.connectedNodes.count()+1) // +1 to add our selves
 	}
 }
 
 func (m *Manager) updateQuorum() {
-	m.log("Cluster quorum state: %t", m.quorum())
+	m.log("%s Cluster quorum state: %t", m.name, m.quorum())
 	select {
 	case m.QuorumState <- m.quorum(): // quorum update to client application
 	default:
@@ -209,6 +208,7 @@ func (m *Manager) NodesConfigured() map[string]bool {
 	for name := range m.configuredNodes {
 		node[name] = true
 	}
+
 	return node
 }
 
@@ -219,6 +219,7 @@ func (m *Manager) NodeConfigured(nodeName string) bool {
 	if _, ok := m.configuredNodes[nodeName]; ok {
 		return true
 	}
+
 	return false
 }
 
@@ -230,10 +231,12 @@ func (m *Manager) RemoveNode(nodeName string) {
 	if _, ok := m.configuredNodes[nodeName]; ok {
 		delete(m.configuredNodes, nodeName)
 	}
+
 	select {
 	case m.internalMessage <- internalMessage{Type: "noderemove", Node: nodeName}:
 	default:
 	}
+
 	m.connectedNodes.close(nodeName)
 }
 
@@ -243,6 +246,7 @@ func (m *Manager) getConfiguredNodes() (nodes []Node) {
 	for _, node := range m.configuredNodes {
 		nodes = append(nodes, node)
 	}
+
 	return
 }
 
@@ -252,7 +256,13 @@ func (m *Manager) StateDump() {
 	for _, node := range m.configuredNodes {
 		m.log("configured nodes: %+v", node)
 	}
+
 	for _, node := range m.connectedNodes.nodes {
 		m.log("connected nodes: %+v", node)
 	}
+}
+
+// Name returns the name of a cluster node
+func (m *Manager) Name() string {
+	return m.name
 }

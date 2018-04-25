@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -15,11 +16,13 @@ type Node struct {
 	reader    *bufio.Reader
 	writer    *bufio.Writer
 	quit      chan bool
+	quitOnce  *sync.Once
 	joinTime  time.Time
 	lag       time.Duration
 	packets   int64
 	statusStr string
 	errorStr  string
+	incomming bool
 }
 
 const (
@@ -35,14 +38,17 @@ const (
 	StatusLeaving = "Leaving"
 )
 
-func newNode(name string, conn net.Conn) *Node {
+func newNode(name string, conn net.Conn, incomming bool) *Node {
 	newNode := &Node{
 		name:      name,
 		conn:      conn,
 		reader:    bufio.NewReader(conn),
 		writer:    bufio.NewWriter(conn),
 		quit:      make(chan bool),
+		quitOnce:  new(sync.Once),
 		statusStr: StatusOffline,
+		incomming: incomming,
+		joinTime:  time.Now(),
 	}
 	return newNode
 }
@@ -81,17 +87,8 @@ func (n *Node) ioReader(packetManager chan Packet, timeoutDuration time.Duration
 }
 
 func (n *Node) close() {
-	// FIXME: nicer close with sync.Once (http://www.tapirgames.com/blog/golang-channel-closing)
-	/*defer func() {
-		if recover() != nil {
-		}
-	}()*/
-
-	select {
-	case <-n.quit:
-		return
-	default:
-	}
-	close(n.quit)
-	n.conn.Close()
+	n.quitOnce.Do(func() {
+		close(n.quit)
+		n.conn.Close()
+	})
 }
